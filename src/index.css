@@ -680,6 +680,7 @@ a:hover { color: var(--link-hover); }
 
 /* Plan cards */
 .pcard { display: grid; gap: 14px; align-content: start; }
+.plan-sub { margin: 3px 0 0; font-size: 13.5px; font-weight: 500; line-height: 1.35; color: var(--ink-muted); }
 .pcard__p { display: grid; gap: 3px; padding-block: 12px; border-block: 1px solid var(--hairline); }
 .pcard__big { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .pcard__w { margin: 4px 0 0; font-size: 13px; color: var(--ink-muted); }
@@ -707,3 +708,74 @@ a:hover { color: var(--link-hover); }
 
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-purple-300); flex: none; }
 .legend { display: flex; align-items: center; gap: 8px; }
+
+/* ── The last step: Finish bar, the "all set" page, and what prints ── */
+.endbar { position: sticky; bottom: 0; z-index: 30; display: flex; gap: 10px; justify-content: space-between; align-items: center; margin: 24px calc(var(--gutter) * -1) -40px; padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom, 0px)); background: rgba(26, 26, 26, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--hairline); }
+.endbar .btn--brand { flex: 1; }
+@media (min-width: 1000px) { .endbar .btn--brand { flex: 0 0 auto; min-width: 220px; } }
+.done { display: grid; gap: 40px; align-content: start; }
+.done__hero { display: grid; gap: 12px; justify-items: start; max-width: 560px; }
+.done__tick { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--color-purple-700); color: var(--color-purple-300); animation: rise 0.4s var(--ease) both; }
+.done__actions { display: grid; gap: 8px; justify-items: start; margin-top: 8px; }
+.done__actions .btn--brand { min-width: 220px; justify-content: center; text-align: center; }
+.done__alt { display: flex; flex-wrap: wrap; gap: 10px; }
+.linkbtn { background: none; border: 0; padding: 6px 0; color: var(--color-purple-300); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.print-only { display: none; }
+
+/* The report: what a person keeps. It reads on screen and prints to a clean PDF. */
+.report { display: grid; gap: 40px; }
+.report__head { display: grid; gap: 6px; padding-bottom: 20px; border-bottom: 1px solid var(--hairline-strong); }
+.report__title { margin: 0; font-size: clamp(24px, 5vw, 32px); font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+.report__lead { margin: 10px 0 0; max-width: 62ch; font-size: 15px; line-height: 1.55; color: var(--ink-muted); font-weight: 500; }
+.report__sec { display: grid; gap: 22px; align-content: start; }
+.report__sech { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.005em; padding-bottom: 10px; border-bottom: 1px solid var(--hairline); }
+.report__h { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.3; text-wrap: balance; }
+.report__top { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 760px) { .report__top { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+.report__box { display: grid; gap: 12px; align-content: start; padding: 18px 20px; }
+.report__box .kv__k { white-space: nowrap; }
+.report__box .kv__r { align-items: start; }
+.report__box .kv__v { min-width: 0; overflow-wrap: anywhere; }
+.report__assumed { display: block; width: fit-content; margin-top: 4px; font-size: 9.5px; padding: 2px 7px; }
+.report__cards { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) { .report__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .report__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.report__tests, .report__next, .report__points, .report__src ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; line-height: 1.5; color: var(--ink-muted); font-weight: 500; }
+.report__tests { list-style: disc; }
+.report__tests strong { color: var(--ink); font-weight: 650; }
+.report__next { list-style: decimal; }
+.report__next li::marker { font-weight: 700; color: var(--ink); }
+.report__about { padding: 22px 24px; border: 1px solid var(--hairline-strong); border-radius: 16px; background: var(--raised); }
+.report__points { list-style: disc; font-size: 14.5px; color: var(--ink); }
+.report__src { display: grid; gap: 8px; }
+.report__src ul { list-style: disc; font-size: 12.5px; }
+@media print {
+  @page { size: A4; margin: 14mm 13mm 18mm; background: #fff; @bottom-left { content: 'Kyfr Insurance Guide · A directional guide, not advice or a quote'; font: 8px/1 sans-serif; color: #777; vertical-align: top; padding-top: 5mm; } @bottom-right { content: counter(page) ' of ' counter(pages); font: 8px/1 sans-serif; color: #777; vertical-align: top; padding-top: 5mm; } }
+  :root { --canvas: #fff; --sheet: #fff; --raised: #f4f4f4; --hairline: #d6d6d6; --hairline-strong: #bbb; --ink: #111; --ink-muted: #555; --color-purple-300: #5b2bb0; }
+  html, body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .top, .foot, .skip, .no-print, .actionbar, .pagerbar, .endbar { display: none !important; }
+  .shell { max-width: none; padding-inline: 0; }
+  .page { padding: 0; }
+  /* Breathing room inside the page margin, so borders and the first letter of a line are never clipped at the edge. */
+  .report { padding: 2mm 5mm 4mm; }
+  .card { background: #fff !important; border: 1px solid #d6d6d6 !important; box-shadow: none !important; break-inside: avoid; }
+  /* Grid containers that run across a page break overlap their neighbours in Chrome's print layout, so print uses plain blocks. */
+  .done, .report, .report__sec, .report__sec .stack, .report__head, .report__box, .report__about, .report__src { display: block; }
+  .report > * + * { margin-top: 26px; }
+  .report__sec > * + * { margin-top: 16px; }
+  .report__sec .stack > * + * { margin-top: 8px; }
+  .report__head > * + * { margin-top: 6px; }
+  .report__box > * + * { margin-top: 12px; }
+  .report__about > * + *, .report__src > * + * { margin-top: 10px; }
+  .report__top { break-inside: avoid; }
+  .report__sec:not(.report__about) + .report__sec:not(.report__about) { break-before: page; }
+  .report__about { break-inside: avoid; background: #f6f6f6 !important; }
+  .report__cards { display: flex; flex-wrap: wrap; gap: 10px; }
+  .report__cards > .pcard { flex: 0 0 calc(50% - 5px); box-sizing: border-box; }
+  .report__top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pcard__l li[data-ok='y'] { color: #0a7a3a; }
+  .pcard__l li[data-ok='x'] { color: #b45309; }
+  .tag--muted { background: #eee !important; color: #444 !important; }
+  .report__tests li, .report__next li, .report__points li { break-inside: avoid; }
+  .report__sech, .report__h { break-after: avoid; }
+}

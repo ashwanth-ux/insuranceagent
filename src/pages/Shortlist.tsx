@@ -1,19 +1,19 @@
 import { useMemo, type ReactNode } from 'react'
 import { HEALTH_PLANS, MOTOR_INSURER_TERMS, SOURCES, TERM_PLANS, type HealthPlan, type TermPlan } from '../data/plans'
 import { termAddons } from '../engine/addons'
-import { CRORE, inr, inrFull } from '../engine/format'
+import { CRORE, inrFull } from '../engine/format'
 import { funnelFor, type Candidate, type Funnel } from '../engine/funnel'
 import { factsFor, leaders } from '../engine/insurerFacts'
 import { insurerBySlug } from '../engine/kb'
+import { buildCards } from '../engine/planCards'
 import { pendingFor, type Priority } from '../engine/shortlist'
 import { computeTerm } from '../engine/term'
-import { computeMotor } from '../engine/motor'
 import { planPremium } from '../engine/termplans'
-import { effectiveSpend, kidsOf, monthlyEmi, motorInputOf, termInputOf } from '../state/derive'
+import { effectiveSpend, kidsOf, monthlyEmi, termInputOf } from '../state/derive'
 import { useProfile, type Product } from '../state/profile'
 import { PRODUCT_NAME, useFlow } from '../flow'
 import { NothingToBuy } from '../ui/Impacts'
-import { addonItems, nothingToBuy, outcomeFor, rangeText } from '../engine/selection'
+import { nothingToBuy } from '../engine/selection'
 import { PageHead } from '../ui/Page'
 import { Arrow, Disclose, Seg } from '../ui/primitives'
 
@@ -56,7 +56,7 @@ export default function Shortlist({ go, product }: { go: (to: string) => void; p
         </div>
       )}
 
-      {nothing ? <NothingToBuy product={PRODUCT_NAME[tab].toLowerCase()} onBack={() => go(flow.to('cover', tab))} onElse={() => go(flow.scoped ? '' : 'need')} /> : (
+      {nothing ? <NothingToBuy product={PRODUCT_NAME[tab].toLowerCase()} onBack={() => go(flow.to('cover', tab))} onElse={() => go(flow.scoped ? '' : 'need')} onDone={() => go(flow.to('done', tab))} /> : (
       <div className="stack stack--lg">
         <Recommended tab={tab} f={f} />
 
@@ -120,7 +120,10 @@ export default function Shortlist({ go, product }: { go: (to: string) => void; p
             <p className="caption">Data window: {f.vintage}.</p>
           </Disclose>
         </div>
-        {tab !== 'motor' && <div className="row"><button type="button" className="btn" onClick={() => go(flow.to('addons', tab))}>Back to add-ons <Arrow /></button></div>}
+        <div className="endbar">
+          {tab !== 'motor' ? <button type="button" className="btn" onClick={() => go(flow.to('addons', tab))}>Back to add-ons</button> : <span />}
+          <button type="button" className="btn btn--brand" onClick={() => go(flow.to('done', tab))}>Finish <Arrow /></button>
+        </div>
       </div>
       )}
     </div>
@@ -232,8 +235,8 @@ function TermPlanCard({ pl, price, needCi, needWop }: { pl: TermPlan; price: { l
   return (
     <div className="card stack">
       <div>
-        <p className="eyebrow">{insurerBySlug('life', pl.insurer)?.name}</p>
-        <h3 className="title">{pl.name}</h3>
+        <h3 className="title">{insurerBySlug('life', pl.insurer)?.name}</h3>
+        <p className="plan-sub">{pl.name}</p>
       </div>
       <p className="h2 num">{inrFull(price.low)} <span className="muted" style={{ fontSize: 16 }}>to</span> {inrFull(price.high)} <span className="muted" style={{ fontSize: 14, fontWeight: 600 }}>a year</span></p>
       <ul className="stack--sm stack small" style={{ fontWeight: 600 }}>
@@ -293,7 +296,7 @@ function HealthPlansView({ f }: { f: Funnel }) {
 function HealthCard({ pl }: { pl: HealthPlan }) {
   return (
     <div className="card stack">
-      <div><p className="eyebrow">{insurerBySlug('health', pl.insurer)?.name}</p><h3 className="title">{pl.name}</h3></div>
+      <div><h3 className="title">{insurerBySlug('health', pl.insurer)?.name}</h3><p className="plan-sub">{pl.name}</p></div>
       <dl className="kv">
         <div className="kv__r"><dt className="kv__k">Room rent</dt><dd className="kv__v" style={{ color: pl.roomRent === 'none' ? '#6ff0a0' : 'var(--color-orange-400)' }}>{pl.roomRent === 'none' ? 'No limit' : 'Depends on variant'}</dd></div>
         <div className="kv__r"><dt className="kv__k">Existing-condition wait</dt><dd className="kv__v">{pl.pedWaitYears} years{pl.pedReducible ? ', reducible' : ''}</dd></div>
@@ -345,68 +348,9 @@ function MotorView({ f, go }: { f: Funnel; go: (to: string) => void }) {
 }
 
 /* ───────────────────────── Plans for you: a carousel ───────────────────────── */
-interface Line { ok: boolean | null; text: string }
-interface Card { key: string; slug: string; eyebrow: string; title: string; cover: string; premium: string; withAddons?: string; lines: Line[]; note?: string }
-
 function Recommended({ tab, f }: { tab: Product; f: Funnel }) {
   const { p } = useProfile()
-  const out = outcomeFor(tab, p)
-  const on = new Set(addonItems(tab, p).filter((i) => i.on).map((i) => i.id))
-  const surv = new Set(f.survivors.map((s) => s.slug))
-  const cards: Card[] = []
-  const withAdd = out.extras.high > 0 ? rangeText(out.total) : undefined
-
-  if (tab === 'term') {
-    const t = computeTerm(termInputOf(p))
-    const cover = t.recommended
-    for (const pl of TERM_PLANS.filter((x) => surv.has(x.insurer))) {
-      const price = planPremium(pl, { age: p.age, gender: p.gender, smoker: p.smoker, cover, coverToAge: t.coverToAge })
-      const lines: Line[] = []
-      if (on.has('wop')) lines.push({ ok: pl.wop.offered && pl.wop.trigger === 'ci+disability', text: !pl.wop.offered ? 'No waiver of premium' : pl.wop.trigger === 'ci+disability' ? 'Waiver on illness and disability' : pl.wop.trigger === 'terminal' ? 'Waiver on terminal illness only' : 'Waiver on disability' })
-      if (on.has('ci')) lines.push({ ok: pl.ci.offered && pl.ci.type !== 'accelerated', text: !pl.ci.offered ? 'No critical illness cover' : `${pl.ci.type === 'accelerated' ? 'Accelerated' : 'Extra'} critical illness${pl.ci.illnesses ? `, ${pl.ci.illnesses} illnesses` : ''}` })
-      if (on.has('raise')) lines.push({ ok: pl.lifeStage === true, text: pl.lifeStage ? 'Cover can rise at marriage or a child' : 'No life-stage increase stated' })
-      if (on.has('adb')) lines.push({ ok: pl.accidentalDeath === true, text: pl.accidentalDeath ? 'Accidental death benefit' : 'No accidental death benefit stated' })
-      if (on.has('rop')) lines.push({ ok: pl.rop === true, text: pl.rop ? 'Return-of-premium variant' : 'No return-of-premium variant stated' })
-      lines.push({ ok: null, text: pl.premiumBreak ? 'Premium break: defer a year, repay later' : pl.highlights[0] })
-      cards.push({ key: pl.id, slug: pl.insurer, eyebrow: insurerBySlug('life', pl.insurer)?.name ?? pl.insurer, title: pl.name, cover: `Cover ${inr(cover)} to age ${t.coverToAge}`, premium: `${rangeText(price)} a year`, withAddons: withAdd, lines: lines.slice(0, 4) })
-    }
-  } else if (tab === 'health') {
-    for (const pl of HEALTH_PLANS.filter((x) => surv.has(x.insurer))) {
-      const lines: Line[] = []
-      if (on.has('room')) lines.push({ ok: pl.roomRent === 'none', text: pl.roomRent === 'none' ? 'No room-rent limit' : 'Room-rent limit depends on variant' })
-      if (on.has('restore')) lines.push({ ok: true, text: `Restoration: ${pl.restoration.toLowerCase()}` })
-      if (on.has('ped')) lines.push({ ok: pl.pedReducible, text: `Existing-condition wait ${pl.pedWaitYears} years${pl.pedReducible ? ', can be cut' : ''}` })
-      if (on.has('stu')) lines.push({ ok: null, text: 'Super top-up: ask for the same room-rent terms' })
-      if (on.has('maternity')) lines.push({ ok: null, text: 'Check maternity limit and wait on the quote' })
-      lines.push({ ok: null, text: `${pl.networkHospitals ? `${pl.networkHospitals.toLocaleString('en-IN')}+ network hospitals` : 'Network not stated'} · ${pl.pedWaitYears}-year wait for existing conditions` })
-      cards.push({ key: pl.id, slug: pl.insurer, eyebrow: insurerBySlug('health', pl.insurer)?.name ?? pl.insurer, title: pl.name, cover: out.lines.map((l) => `${l.label} ${l.value}`).join(' · '), premium: `${rangeText(out.base)} a year`, withAddons: withAdd, lines: lines.slice(0, 4), note: pl.variantNote })
-    }
-  } else {
-    const m = computeMotor(motorInputOf(p))
-    for (const c of f.survivors) {
-      const t = MOTOR_INSURER_TERMS.find((x) => x.insurer === c.slug)
-      const g = t?.garages ? Object.values(t.garages).filter((x): x is number => typeof x === 'number') : []
-      const lines: Line[] = []
-      if (g.length) lines.push({ ok: null, text: `${Math.max(...g).toLocaleString('en-IN')}+ cashless garages` })
-      if (on.has('zeroDep') && t?.zeroDepMaxVehicleYears) lines.push({ ok: true, text: `Zero depreciation to ${t.zeroDepMaxVehicleYears} years, ${t.zeroDepClaimsPerYear === 'unlimited' ? 'unlimited claims' : `${t.zeroDepClaimsPerYear} claims a year`}` })
-      if (on.has('rsa') && t?.roadsideAssist) lines.push({ ok: null, text: `Roadside help: ${t.roadsideAssist}` })
-      if (t?.claimSpeed) lines.push({ ok: null, text: t.claimSpeed })
-      cards.push({ key: c.slug, slug: c.slug, eyebrow: 'Motor insurer', title: c.name, cover: `Insured value ${inr(m.idv)}`, premium: `${rangeText(out.total)} a year`, lines: lines.slice(0, 4) })
-    }
-  }
-
-  // Every insurer that cleared the bar gets a card, even where we do not hold plan-level details for it yet.
-  const t0 = tab === 'term' ? computeTerm(termInputOf(p)) : null
-  for (const c of f.survivors) {
-    if (cards.some((x) => x.slug === c.slug)) continue
-    const facts = factsFor(tab, c.slug).slice(0, 3)
-    cards.push({
-      key: `${c.slug}-insurer`, slug: c.slug, eyebrow: 'Insurer', title: c.name,
-      cover: tab === 'term' && t0 ? `Cover ${inr(t0.recommended)} to age ${t0.coverToAge}` : out.lines.map((l) => `${l.label} ${l.value}`).join(' · '),
-      premium: `${rangeText(tab === 'term' && t0 ? t0.premium : out.base)} a year`, withAddons: withAdd,
-      lines: [...facts.map((x) => ({ ok: null, text: `${x.label}: ${x.value}` })), { ok: null, text: 'Plan-level details are not in our data yet. Use the checklist in add-ons.' }].slice(0, 4),
-    })
-  }
+  const { cards } = buildCards(tab, p, f)
 
   return (
     <section className="stack" aria-label="Plans for you">
@@ -418,8 +362,8 @@ function Recommended({ tab, f }: { tab: Product; f: Funnel }) {
         {cards.map((c) => (
           <article className="card lead-card pcard" key={c.key}>
             <div>
-              <p className="eyebrow">{c.eyebrow}</p>
               <h3 className="title">{c.title}</h3>
+              {c.plan && <p className="plan-sub">{c.plan}</p>}
             </div>
             <div className="pcard__p">
               <p className="pcard__big">{c.premium}</p>

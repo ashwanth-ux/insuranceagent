@@ -56,7 +56,7 @@ export default function Need({ go }: { go: (to: string) => void }) {
     <Multi<Owns> key="veh" label="Vehicles you own" value={p.owns.filter((o) => o === 'car' || o === 'bike')} options={VEHICLES} none="No vehicle" onChange={(v) => set({ owns: [...p.owns.filter((o) => o !== 'car' && o !== 'bike'), ...v] })} />,
     <Multi<Covered> key="cov" label="What covers you today" value={p.covered} options={COVERED.filter((c) => c.id !== 'ownMotor' || p.owns.includes('car') || p.owns.includes('bike'))} none="Nothing yet" onChange={(covered) => set({ covered })} />,
   ]
-  const hints = [undefined, 'Pick everyone who would struggle without your income.', undefined, 'If you died, your family would carry the repayment.', 'Whether or not it is on a loan.', 'Pick everything that applies.']
+  const hints = [undefined, 'Include anyone who counts on your income to get by.', undefined, 'If something happened to you, your family would be left to repay it.', 'Whether or not it is on a loan.', 'Pick everything that applies.']
 
   if (asking) {
     return (

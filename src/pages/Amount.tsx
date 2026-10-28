@@ -484,7 +484,7 @@ function MotorAmount({ go }: { go: (to: string) => void }) {
         <p className="body small">Third-party cover is the law and its price is fixed by the government, the same at every insurer. Own-damage cover is your choice, and the only part insurers compete on.</p>
         <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Step</th><th>Working</th><th className="r">Amount</th></tr></thead>
           <tbody>{r.steps.map((s, i) => <tr key={i}><td>{s.label}</td><td className="muted" style={{ fontWeight: 500 }}>{s.formula ?? ''}</td><td className="r">{s.value}</td></tr>)}</tbody></table></div>
-        <p className="caption">Third-party rates are the government-notified rates of 1 June 2022. A revision has been proposed but not confirmed. Third-party property damage is capped at {inr(r.tpPropertyLimit)} for private cars; there is no cap on injury or death claims. Own-damage rates are calibrated to one published example (a ₹14 lakh IDV car with 35% no-claim bonus costing about ₹15,600 for the base policy), so treat them as an indicative range.</p>
+        <p className="caption">Third-party rates are the government-notified rates of 1 June 2022. A revision has been proposed but not confirmed. Third-party property damage is capped at {inr(r.tpPropertyLimit)} for private cars; there is no cap on claims for injury or loss of life. Own-damage rates are calibrated to one published example (a ₹14 lakh IDV car with 35% no-claim bonus costing about ₹15,600 for the base policy), so treat them as an indicative range.</p>
       </div>
     </>
   )

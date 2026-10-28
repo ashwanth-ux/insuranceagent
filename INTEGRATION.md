@@ -9,6 +9,7 @@ The guide is a static single-page app. Each product is a complete flow on its ow
 | `#/term`, `#/health`, `#/motor` | The product's own flow, starting at **cover** |
 | `#/<product>/addons` | Choose add-ons, with the cover and premium that result |
 | `#/<product>/insurers` | Which insurers clear the bar |
+| `#/<product>/done` | The last page: "You're all set", the report for that product, and Save as PDF. The full guide ends at `#/done/<product>` with one report covering every product |
 | `#/faq`, `#/faq?open=<question id>` | The FAQ, or one question opened |
 | `#/` , `#/need` | The full guide (need, then amount, add-ons, insurers) |
 
@@ -54,6 +55,11 @@ Delivered to a React Native WebView (`ReactNativeWebView.postMessage`, as JSON),
 { "source": "kyfr-insurance", "type": "outcome", "product": "health",
   "lines": [{ "label": "You and your family", "value": "₹30 lakh" }],
   "premium": { "low": 114400, "high": 171800 }, "addons": ["Super top-up"] }
+{ "source": "kyfr-insurance", "type": "done", "product": "health",
+  "lines": [{ "label": "You and your family", "value": "₹30 lakh" }],
+  "premium": { "low": 114400, "high": 171800 }, "addons": ["Super top-up"] }
 ```
+
+`done` is sent once, when the person reaches the final "You're all set" page. A host app can use it to close the browser or WebView. When there is nothing to buy, `lines` and `addons` are empty and `premium` is `null`.
 
 Only the product, the step, and the cover and premium shown are sent. Premiums are indicative ranges, not quotes.

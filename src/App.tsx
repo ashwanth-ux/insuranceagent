@@ -11,6 +11,7 @@ import Amount from './pages/Amount'
 import Addons from './pages/Addons'
 import Shortlist from './pages/Shortlist'
 import Faq from './pages/Faq'
+import Done from './pages/Done'
 
 const TITLES: Record<string, string> = {
   '': 'Kyfr Insurance Guide',
@@ -18,6 +19,7 @@ const TITLES: Record<string, string> = {
   amount: 'How much cover · Kyfr Insurance Guide',
   addons: 'Add-ons · Kyfr Insurance Guide',
   shortlist: 'Best insurers · Kyfr Insurance Guide',
+  done: 'All set · Kyfr Insurance Guide',
   faq: 'FAQ · Kyfr Insurance Guide',
 }
 const PRODUCTS: readonly string[] = ['term', 'health', 'motor']
@@ -57,7 +59,7 @@ function Shell() {
   }, [isEmbed])
 
   useEffect(() => {
-    document.title = product ? `${PRODUCT_TITLE[product][0].toUpperCase()}${PRODUCT_TITLE[product].slice(1)} · Kyfr Insurance Guide` : TITLES[first === 'ask' ? 'faq' : first] ?? TITLES['']
+    document.title = first === 'done' || (product && route.path[1] === 'done') ? TITLES.done : product ? `${PRODUCT_TITLE[product][0].toUpperCase()}${PRODUCT_TITLE[product].slice(1)} · Kyfr Insurance Guide` : TITLES[first === 'ask' ? 'faq' : first] ?? TITLES['']
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     main.current?.focus({ preventScroll: true })
     emit({ type: 'step', route: route.path.join('/'), product })
@@ -93,13 +95,14 @@ function Shell() {
         {first === 'amount' && <Amount go={go} product={route.path[1]} />}
         {first === 'addons' && <Addons go={go} product={route.path[1]} />}
         {first === 'shortlist' && <Shortlist go={go} product={route.path[1]} />}
+        {first === 'done' && <Done go={go} product={route.path[1]} />}
         {product && (
           <FlowProvider value={scopedFlow(product)}>
-            {step === 'addons' ? <Addons go={go} product={product} /> : step === 'insurers' ? <Shortlist go={go} product={product} /> : <Amount go={go} product={product} />}
+            {step === 'addons' ? <Addons go={go} product={product} /> : step === 'insurers' ? <Shortlist go={go} product={product} /> : step === 'done' ? <Done go={go} product={product} /> : <Amount go={go} product={product} />}
           </FlowProvider>
         )}
         {(first === 'faq' || first === 'ask') && <Faq go={go} open={route.q.get('open') ?? ''} q={route.q.get('q') ?? ''} />}
-        {!['', 'need', 'amount', 'addons', 'shortlist', 'faq', 'ask', ...PRODUCTS].includes(first) && <Landing />}
+        {!['', 'need', 'amount', 'addons', 'shortlist', 'done', 'faq', 'ask', ...PRODUCTS].includes(first) && <Landing />}
       </main>
       {!isEmbed && (
         <footer className="foot">

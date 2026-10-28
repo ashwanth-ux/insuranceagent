@@ -106,7 +106,7 @@ export const TERM_PLANS: TermPlan[] = [
     terminal: { builtIn: true },
     accidentalDeath: null, lifeStage: true, premiumBreak: true, smartExit: null, rop: true, increasingCover: true, spouseCover: null,
     highlights: ['Life-stage protection', 'Cover Continuance Benefit', 'Early Exit Value on eligible variants'],
-    watch: ['Accelerated CI reduces the death cover. Prefer an additional (stand-on-top) CI cover'],
+    watch: ['Accelerated CI reduces your life cover. Prefer an additional (stand-on-top) CI cover'],
     premium: { m25: 18607, f25: 16343, m35: 26507, f35: 21504 }, sources: ['dittoTerm'],
   },
   {
@@ -118,7 +118,7 @@ export const TERM_PLANS: TermPlan[] = [
     terminal: { builtIn: true, note: 'Accelerated payout of 50% of the base sum assured, plus waiver of future premiums.' },
     accidentalDeath: true, lifeStage: null, premiumBreak: true, smartExit: null, rop: true, increasingCover: null, spouseCover: null,
     advancePayout: '₹3 lakh at claim intimation for sums of ₹1 crore or more',
-    highlights: ['Cover to age 100 on eligible options', 'FlexiPay: defer premiums up to 12 months', 'Riders for CI, accidental disability, accidental death, hospitalisation'],
+    highlights: ['Cover to age 100 on eligible options', 'FlexiPay: defer premiums up to 12 months', 'Riders for CI, accidental disability, accident cover, hospitalisation'],
     watch: ['Base premium discount of about 18.5% applies in year 1 only', 'Check which waiver trigger your variant carries'],
     premium: { m25: 18059, f25: 15350, m35: 27218, f35: 23134 }, sources: ['dittoTerm', 'pranay'],
   },

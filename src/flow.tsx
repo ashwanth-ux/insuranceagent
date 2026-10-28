@@ -7,7 +7,7 @@ import type { Product } from './state/profile'
  *  - A single product on its own (#/motor, #/health, #/term): cover → add-ons → insurers, for one product, start to finish.
  * Pages ask the flow where "next" is, so they never hard-code a route.
  */
-export type Step = 'cover' | 'addons' | 'insurers'
+export type Step = 'cover' | 'addons' | 'insurers' | 'done'
 
 export interface Flow {
   scoped: boolean
@@ -18,7 +18,7 @@ export interface Flow {
 
 const full: Flow = {
   scoped: false, product: null,
-  to: (s, p) => (s === 'cover' ? `amount/${p}` : s === 'addons' ? `addons/${p}` : `shortlist/${p}`),
+  to: (s, p) => (s === 'cover' ? `amount/${p}` : s === 'addons' ? `addons/${p}` : s === 'done' ? `done/${p}` : `shortlist/${p}`),
 }
 
 export const scopedFlow = (product: Product): Flow => ({

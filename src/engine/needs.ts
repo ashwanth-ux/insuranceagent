@@ -107,7 +107,7 @@ export function computeNeeds(i: NeedsInput): NeedsResult {
   // 6. CI and PA
   needs.push({ id: 'ci', title: 'Critical illness and personal accident', status: 'later', product: null, order: 6, reason: 'Last in line. They replace income while you recover, which nothing else does. Add them once the cover above is in place.' })
 
-  if (c.has('savingsPlan')) flags.push('Endowment, money-back and ULIP plans are savings with a small cover attached. We count only their death benefit as protection.')
+  if (c.has('savingsPlan')) flags.push('Endowment, money-back and ULIP plans are savings with a small cover attached. We count only their life cover as protection.')
   if (c.has('employerHealth') && !c.has('ownHealth')) flags.push('Your health cover would vanish if you left or lost your job.')
   if (c.has('employerLife') && !c.has('ownTerm')) flags.push('Your life cover is through your employer. It would end with the job, so we do not count it.')
 

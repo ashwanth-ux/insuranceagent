@@ -180,7 +180,7 @@ function ReferenceInner({ product }: { product: Product }) {
           <p className="body small">About {inr(ci.rounded)} for you: {inr(10 * LAKH)} for the treatment gap your health plan will not cover, plus 24 months of household spending and EMIs ({inrFull(Math.round(effectiveSpend(p) + monthlyEmi(p)))} a month). Common advice is ₹{TERM_RIDER_RULES.ciMinLakh}–{TERM_RIDER_RULES.ciMaxLakh} lakh on top of health insurance.</p>
         </Disclose>
         <Disclose title="Which plans carry these riders?">
-          <p className="body small">Ten widely compared plans. The waiver-of-premium trigger is the clause that separates a good policy from a great one: a waiver that works only on terminal illness does little when you are ill but still alive.</p>
+          <p className="body small">Ten widely compared plans. The waiver-of-premium trigger is the clause that separates a good policy from a great one: a waiver that works only on terminal illness does little through a long illness that is serious but not terminal.</p>
           <div className="tbl-wrap"><table className="tbl">
             <thead><tr><th>Plan</th><th>Critical illness</th><th>Waiver of premium</th><th>Premium break</th><th className="r">Typical, ₹2 cr at 35</th></tr></thead>
             <tbody>{TERM_PLANS.map((pl) => (

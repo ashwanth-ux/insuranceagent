@@ -178,7 +178,7 @@ export function KeepList({ items }: { items: string[] }) {
 }
 
 /** Shown in place of the add-ons and insurers steps when we are not suggesting anything to buy. */
-export function NothingToBuy({ product, onBack, onElse }: { product: string; onBack: () => void; onElse: () => void }) {
+export function NothingToBuy({ product, onBack, onElse, onDone }: { product: string; onBack: () => void; onElse: () => void; onDone?: () => void }) {
   return (
     <div className="sum__main" style={{ maxWidth: 560 }}>
       <div className="stack">
@@ -189,6 +189,7 @@ export function NothingToBuy({ product, onBack, onElse }: { product: string; onB
       <div className="row" style={{ gap: 10 }}>
         <button type="button" className="btn btn--brand" onClick={onBack}>Review my answers</button>
         <button type="button" className="btn" onClick={onElse}>Check something else</button>
+        {onDone && <button type="button" className="btn" onClick={onDone}>I’m done</button>}
       </div>
     </div>
   )

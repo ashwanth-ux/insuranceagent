@@ -78,7 +78,7 @@ export function termAddons(i: TermAddonInput): AddonRow[] {
       ? 'There is serious illness in your family. This pays a lump sum on diagnosis.'
       : ciTake ? `Your savings would carry the household for about ${Math.max(0, Math.floor(monthsOfRunway))} months. One to two years of lost income during a recovery is the gap this fills.` : i.depends ? 'Your savings could carry the household through a long recovery.' : 'Nobody depends on your income.',
     cost: ciTake || i.familyHistory ? `About ${inr(ci.rounded)} of cover` : undefined,
-    watch: 'Prefer additional cover (pays on top of death cover) over accelerated (reduces it). A standalone plan is cleaner for a bigger amount.',
+    watch: 'Prefer additional cover (pays on top of your life cover) over accelerated (reduces it). A standalone plan is cleaner for a bigger amount.',
   })
 
   rows.push({
@@ -95,9 +95,9 @@ export function termAddons(i: TermAddonInput): AddonRow[] {
   })
 
   rows.push({
-    id: 'adb', product: 'term', label: 'Accidental death benefit',
+    id: 'adb', product: 'term', label: 'Accident rider',
     verdict: i.heavyCommute ? 'consider' : 'skip',
-    reason: i.heavyCommute ? 'You travel or commute heavily. Take it only if it costs under about 10% of your base premium.' : 'It pays only for accidents and never replaces base cover.',
+    reason: i.heavyCommute ? 'You travel or commute heavily. Take it only if it costs under about 10% of your base premium.' : 'Sold as an accidental death benefit. It pays only for accidents and never replaces base cover.',
   })
 
   rows.push({ id: 'rop', product: 'term', label: 'Return of premium', verdict: 'skip', reason: 'It costs two to three times plain term and refunds only your own money, years later. Buy plain term and invest the difference.' })

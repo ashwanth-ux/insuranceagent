@@ -7,7 +7,7 @@ describe('shortlist guardrails', () => {
   it('Go Digit Life (3 claims, 0% paid) can never appear in a claims leaderboard', () => {
     const s = buildSection(spec('term.csr'))
     expect(s.eligible.some((l) => l.insurer.slug === 'go-digit-life')).toBe(false)
-    expect(s.excluded.find((e) => e.name === 'Go Digit Life')?.reason).toMatch(/Only 3 death claims/)
+    expect(s.excluded.find((e) => e.name === 'Go Digit Life')?.reason).toMatch(/Only 3 family claims/)
   })
   it('Bandhan Life (365 claims) is excluded by the 1,000-claim floor', () => {
     const s = buildSection(spec('term.csr'))

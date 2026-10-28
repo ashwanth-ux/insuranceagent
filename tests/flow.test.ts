@@ -13,6 +13,9 @@ describe('each product is a complete flow on its own', () => {
       expect(f.to('addons', p)).toBe(`${p}/addons`)
       expect(f.to('insurers', p)).toBe(`${p}/insurers`)
     })
+    it(`${p}: the flow ends on a page of its own, in the guide and on its own`, () => {
+      expect(scopedFlow(p).to('done', p)).toBe(`${p}/done`)
+    })
   }
 })
 

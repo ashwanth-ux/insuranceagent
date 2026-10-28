@@ -4,7 +4,7 @@
  * Nothing personal is sent: only the product, the step, and the cover and premium shown.
  */
 export interface BridgeMessage {
-  type: 'step' | 'outcome'
+  type: 'step' | 'outcome' | 'done'
   [key: string]: unknown
 }
 

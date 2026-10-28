@@ -109,7 +109,7 @@ export function outcomeFor(product: Product, p: Profile): Outcome {
     const extras = addRange(ZERO, ...priced.map((i) => i.cost!))
     const ci = items.find((i) => i.id === 'ci')
     return {
-      lines: [{ label: 'Death cover', value: t.recommended > 0 ? inr(t.recommended) : 'Nothing to add' }, ...(ci?.cover && t.recommended > 0 ? [{ label: 'Critical illness cover', value: inr(ci.cover.amount) }] : [])],
+      lines: [{ label: 'Life cover', value: t.recommended > 0 ? inr(t.recommended) : 'Nothing to add' }, ...(ci?.cover && t.recommended > 0 ? [{ label: 'Critical illness cover', value: inr(ci.cover.amount) }] : [])],
       base: t.premium, extras, total: addRange(t.premium, extras), unpriced, picked,
     }
   }

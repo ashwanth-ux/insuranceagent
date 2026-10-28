@@ -86,8 +86,8 @@ const lifeBase = (code: string) => (period: string): Row[] =>
   insurers('life').map((insurer) => {
     const v = value('life', code, insurer.slug, period)
     const n = rawValue('life', 'claims_paid_count_pct', insurer.slug, 'total claims count', period)
-    if (v === null || n === null) return { insurer, value: null, eligible: false, reason: 'No individual death-claim figures reported by IRDAI' }
-    if (n < FLOORS.lifeClaims) return { insurer, value: v, volume: n, eligible: false, reason: `Only ${n.toLocaleString('en-IN')} death claims, too few to compare` }
+    if (v === null || n === null) return { insurer, value: null, eligible: false, reason: 'IRDAI reports no individual claim figures for this insurer' }
+    if (n < FLOORS.lifeClaims) return { insurer, value: v, volume: n, eligible: false, reason: `Only ${n.toLocaleString('en-IN')} family claims, too few to compare` }
     return { insurer, value: v, volume: n, volumeText: `${n.toLocaleString('en-IN')} claims`, eligible: true }
   })
 
@@ -166,10 +166,10 @@ export const CRITERIA: CriterionSpec[] = [
     id: 'term.csr', product: 'term', type: 'life', group: 'primary', priority: 'certainty',
     title: 'Claims paid', term: 'Claim settlement ratio, by number', question: 'How often do they pay?',
     direction: 'higher', fmt: pct2, tieEps: 0.05, moveEps: 1,
-    plain: (n) => `About ${n.toFixed(1)} of every 100 death claims were paid.`,
-    why: 'The share of death claims an insurer paid. It is the first thing to check, but never the only one.',
-    watch: ['Covers death claims on every kind of individual policy, not term alone. IRDAI publishes no term-only figure.', 'It is the insurer’s past record, not the chance your own claim is paid.', 'It counts claims, not money.'],
-    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} individual death claims in the year, so a handful of cases cannot swing a percentage.`,
+    plain: (n) => `About ${n.toFixed(1)} of every 100 claims from families were paid.`,
+    why: 'The share of claims from families, made after a policyholder’s passing, that an insurer paid. It is the first thing to check, but never the only one.',
+    watch: ['Covers family claims on every kind of individual policy, not term alone. IRDAI publishes no term-only figure.', 'It is the insurer’s past record, not the chance your own claim is paid.', 'It counts claims, not money.'],
+    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} individual family claims in the year, so a handful of cases cannot swing a percentage.`,
     source: 'IRDAI Handbook 2024-25, Table 15', rows: lifeBase('claims_paid_count_pct'),
   },
   {
@@ -179,7 +179,7 @@ export const CRITERIA: CriterionSpec[] = [
     plain: (n) => `About ₹${n.toFixed(1)} of every ₹100 claimed was paid out.`,
     why: 'A big claim and a small claim count the same by number. By amount shows whether large claims get paid.',
     watch: ['A gap between this and claims paid by number means larger claims were turned down more often.', 'IRDAI’s aggregate data does not show which claims were unpaid or why.'],
-    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} individual death claims in the year.`,
+    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} individual family claims in the year.`,
     source: 'IRDAI Handbook 2024-25, Table 15', rows: lifeBase('claims_paid_amount_pct'),
   },
   {
@@ -189,7 +189,7 @@ export const CRITERIA: CriterionSpec[] = [
     plain: (n) => `Held ${n.toFixed(2)}× the margin IRDAI requires.`,
     why: 'Term cover can run 30 years. The solvency ratio compares what an insurer holds with what IRDAI requires it to keep.',
     watch: watchSolvency,
-    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} death claims, and at or above IRDAI’s minimum of ${FLOORS.solvencyMin}.`,
+    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} family claims, and at or above IRDAI’s minimum of ${FLOORS.solvencyMin}.`,
     source: 'IRDAI Handbook 2024-25, Table 23', rows: lifeSolvency,
   },
   {
@@ -199,7 +199,7 @@ export const CRITERIA: CriterionSpec[] = [
     plain: (n) => `${n.toFixed(0)} of every 100 policies were still active after a year.`,
     why: 'Policies that lapse stop paying. This is a clue to how a product is sold and priced.',
     watch: ['It reflects affordability, product mix and how policies were sold, not only insurer quality.'],
-    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} death claims.`,
+    floorText: `Only insurers with at least ${FLOORS.lifeClaims.toLocaleString('en-IN')} family claims.`,
     source: 'IRDAI Handbook 2024-25, Table 28', rows: lifePersistency,
   },
   {

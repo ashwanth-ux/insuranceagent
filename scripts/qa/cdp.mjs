@@ -57,6 +57,7 @@ export async function launch({ width = 1280, height = 900, mobile = false } = {}
       const r = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: full, ...(clip ? { clip } : {}) })
       writeFileSync(file, Buffer.from(r.data, 'base64'))
     },
+    async pdf(file) { const r = await send('Page.printToPDF', { printBackground: true, preferCSSPageSize: true }); writeFileSync(file, Buffer.from(r.data, 'base64')) },
     async click(sel) { return api.eval(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) return 'NOT FOUND'; e.scrollIntoView({block:'center'}); e.click(); return 'ok'})()`) },
     async clickText(text, sel = 'button, a, [role=radio], [role=checkbox]') { return api.eval(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(sel)})].find(x=>x.textContent.trim().replace(/\\s+/g,' ').startsWith(${JSON.stringify(text)})); if(!e) return 'NOT FOUND: '+${JSON.stringify(text)}; e.scrollIntoView({block:'center'}); e.click(); return 'ok'})()`) },
     async type(sel, value) { // real-ish typing: focus, set via native setter, input event, blur
