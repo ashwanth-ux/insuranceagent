@@ -3,6 +3,8 @@ import { LIMITS } from './limits'
 import type { CityTier, Flag, Range, Step } from './types'
 
 export type HospitalTier = 'top' | 'standard' | 'local'
+/** From the plainest hospitals to the priciest. Cover never falls as you move along it. */
+const HOSPITAL_ORDER: HospitalTier[] = ['local', 'standard', 'top']
 
 /* ───────────────────────── Assumptions ───────────────────────── */
 export const HEALTH_ASSUMPTIONS = {
@@ -245,20 +247,39 @@ export function computeHealth(i: HealthInput): HealthResult {
   const members = 1 + (i.spouse ? 1 : 0) + kidsForPrice
   const factor = 1 + (i.spouse ? A.familyLoad.spouse : 0) + Math.min(A.familyLoad.maxChildren, kidsForPrice) * A.familyLoad.child
   const levelTotal = (l: number) => clamp(Math.max(levels[l], roundTo(levels[l] * factor, A.roundTo)), 0, A.maxTotal)
+  const cityWord = i.city === 'metro' ? 'a metro' : i.city === 'tier2' ? 'a tier-2 city' : 'a smaller town'
+  // Sizing for one answer to "which hospitals would you use".
   // Base plan: big enough that ordinary admissions are cashless. ₹5L only for a smaller town, local hospitals and savings that can absorb a bill.
   // A family of three or more sharing one floater in a city with good private hospitals starts at ₹15L.
   // Top private hospitals bill well above a ₹10L plan even for ordinary admissions, so the base steps up another ₹5L.
-  const smallAndLocal = !i.babyPlanned && i.city === 'other' && i.hospital === 'local' && savings >= 5 * LAKH
-  const base = smallAndLocal ? 5 * LAKH : 10 * LAKH + (members >= 3 && i.city !== 'other' && i.hospital !== 'local' ? 5 * LAKH : 0) + (i.hospital === 'top' ? 5 * LAKH : 0)
-  let lvl = i.hospital === 'top' ? 2 : i.hospital === 'standard' ? 1 : 0
-  const topUpReasons: string[] = []
-  const cityWord = i.city === 'metro' ? 'a metro' : i.city === 'tier2' ? 'a tier-2 city' : 'a smaller town'
-  if (lvl >= 1) topUpReasons.push(lvl === 2 ? `Top private hospitals in ${cityWord} bill far above a ${inr(base)} plan for a serious admission.` : `Good private hospitals in ${cityWord}: one serious admission can pass a ${inr(base)} plan.`)
-  if ((i.knownCondition || i.familyHistory) && lvl < 1) { lvl = 1; topUpReasons.push(i.knownCondition ? 'You have a known condition, which makes a long or repeated admission more likely.' : 'Serious illness runs in your family, so a long treatment is a real possibility.') }
-  else if (i.knownCondition) topUpReasons.push('You have a known condition, which makes a long or repeated admission more likely.')
-  else if (i.familyHistory) topUpReasons.push('Serious illness runs in your family, so a long treatment is a real possibility.')
-  if (savings < A.thinSavings && lvl < 1) { lvl = 1; topUpReasons.push('Your savings could not absorb a large gap above the base plan.') }
-  const selected = levelTotal(lvl)
+  const sizeFor = (hospital: HospitalTier) => {
+    const smallAndLocal = !i.babyPlanned && i.city === 'other' && hospital === 'local' && savings >= 5 * LAKH
+    const base = smallAndLocal ? 5 * LAKH : 10 * LAKH + (members >= 3 && i.city !== 'other' && hospital !== 'local' ? 5 * LAKH : 0) + (hospital === 'top' ? 5 * LAKH : 0)
+    let lvl = hospital === 'top' ? 2 : hospital === 'standard' ? 1 : 0
+    const reasons: string[] = []
+    if (lvl >= 1) reasons.push(lvl === 2 ? `Top private hospitals in ${cityWord} bill far above a ${inr(base)} plan for a serious admission.` : `Good private hospitals in ${cityWord}: one serious admission can pass a ${inr(base)} plan.`)
+    if ((i.knownCondition || i.familyHistory) && lvl < 1) { lvl = 1; reasons.push(i.knownCondition ? 'You have a known condition, which makes a long or repeated admission more likely.' : 'Serious illness runs in your family, so a long treatment is a real possibility.') }
+    else if (i.knownCondition) reasons.push('You have a known condition, which makes a long or repeated admission more likely.')
+    else if (i.familyHistory) reasons.push('Serious illness runs in your family, so a long treatment is a real possibility.')
+    if (savings < A.thinSavings && lvl < 1) { lvl = 1; reasons.push('Your savings could not absorb a large gap above the base plan.') }
+    const selected = levelTotal(lvl)
+    // A gap too small to be worth its own plan is left to the base.
+    const gap = selected - base
+    return { base, lvl, reasons, selected, total: base + (gap >= A.minTopUp ? gap : 0) }
+  }
+  const chosen = sizeFor(i.hospital)
+  const topUpReasons = chosen.reasons
+  const lvl = chosen.lvl
+  let base = chosen.base
+  let selected = chosen.selected
+  // Planning for pricier hospitals never lowers the cover. The "leave a small gap to the base" rule and the smaller base for local
+  // hospitals can otherwise leave a family with less for good private hospitals than for local ones. Bring it up to the lower answer.
+  const lowerTotal = Math.max(0, ...HOSPITAL_ORDER.slice(0, HOSPITAL_ORDER.indexOf(i.hospital)).map((h) => sizeFor(h).total))
+  const floored = chosen.total < lowerTotal
+  if (floored) {
+    selected = lowerTotal
+    if (selected - base < A.minTopUp) base = selected
+  }
 
   const pCount = i.parents
   const parentBase = A.parentBase[i.city]
@@ -373,7 +394,7 @@ export function computeHealth(i: HealthInput): HealthResult {
   const steps: Step[] = [
     { label: 'Cover for one adult at these hospitals', formula: `${hospitalLabel[i.hospital]} in a ${i.city === 'metro' ? 'metro' : i.city === 'tier2' ? 'tier-2 city' : 'smaller town'}${lvl !== (i.hospital === 'top' ? 2 : i.hospital === 'standard' ? 1 : 0) ? ', raised because of your answers' : ''}. Local / good / top hospitals: ${inr(t.low)} / ${inr(t.mid)} / ${inr(t.high)}`, value: inr(levels[lvl]) },
     { label: 'Adjustment for the people on the plan', formula: `1 + ${A.familyLoad.spouse} per extra adult + ${A.familyLoad.child} per child (up to ${A.familyLoad.maxChildren}) = 1 + ${i.spouse ? A.familyLoad.spouse : 0} + ${Math.min(A.familyLoad.maxChildren, kidsForPrice)} × ${A.familyLoad.child}. One limit is shared by everyone`, value: `× ${factor.toFixed(2)}` },
-    { label: 'Total cover to aim for (base + super top-up)', formula: trimmed ? 'Base plan only, to keep your premium affordable' : `${inr(levels[lvl])} × ${factor.toFixed(2)}, rounded to the nearest ${inr(A.roundTo)}, never above ${inr(A.maxTotal)}. A gap under ${inr(A.minTopUp)} above the base is left to the base`, value: inr(recommendedTotal) },
+    { label: 'Total cover to aim for (base + super top-up)', formula: trimmed ? 'Base plan only, to keep your premium affordable' : `${inr(levels[lvl])} × ${factor.toFixed(2)}, rounded to the nearest ${inr(A.roundTo)}, never above ${inr(A.maxTotal)}. A gap under ${inr(A.minTopUp)} above the base is left to the base${floored ? '. Never less than the same family would aim for with more modest hospitals' : ''}`, value: inr(recommendedTotal) },
     { label: 'Base plan', formula: `${members >= 3 && base === 15 * LAKH ? 'Three or more people share one limit, so it starts higher. ' : ''}Large enough that ordinary admissions${i.babyPlanned ? ' and a delivery' : ''} are cashless`, value: inr(base) },
     { label: 'Super top-up', formula: superTopUp > 0 ? 'Total − base. It pays once a year’s bills cross the deductible' : 'Not suggested for your answers', value: superTopUp > 0 ? `${inr(superTopUp)} over ${inr(deductible)}` : '—' },
     { label: 'Family premium', formula: `You${i.spouse ? ', spouse' : ''}${kids ? `, ${kids} ${kids === 1 ? 'child' : 'children'}` : ''}${i.babyPlanned ? ', plus the baby you plan' : ''} on one floater`, value: `${inrFull(sumRange(baseP, topP).low)} to ${inrFull(sumRange(baseP, topP).high)} a year` },

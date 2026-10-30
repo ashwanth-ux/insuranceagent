@@ -2,11 +2,10 @@ import { useState, type ReactNode } from 'react'
 import { LAKH, CRORE, inr, inrFull, pct, roundTo, times } from '../engine/format'
 import { computeHealth, healthPayout, hospitalLabel, type HospitalTier } from '../engine/health'
 import { LIMITS } from '../engine/limits'
-import { ageLabel, ccLabel, computeMotor, valueBounds, AGE_ORDER, type BikeCc, type CarCc, type VehicleAge } from '../engine/motor'
 import { computeNeeds } from '../engine/needs'
 import { computeTerm } from '../engine/term'
 import { bundleFor } from '../engine/bundles'
-import { effectiveParentSupport, effectiveLoans, effectiveSpend, estimateLoans, estimateMonthlySpend, hasLoanFlag, healthInputOf, kidsOf, motorInputOf, needsInputOf, termInputOf } from '../state/derive'
+import { effectiveParentSupport, effectiveLoans, effectiveSpend, estimateLoans, estimateMonthlySpend, hasLoanFlag, healthInputOf, kidsOf, needsInputOf, termInputOf } from '../state/derive'
 import { useProfile, type Product } from '../state/profile'
 import type { CityTier } from '../engine/types'
 import { useFlow } from '../flow'
@@ -15,18 +14,17 @@ import { nothingToBuy } from '../engine/selection'
 import { PageHead } from '../ui/Page'
 import { AssumptionSummary, ImpactPanel, KeepList, PlanLines, Ripple, StandingHero } from '../ui/Impacts'
 import { assumptionsFor } from '../engine/assumptions'
-import { healthPlansView, healthStanding, motorStanding, termStanding } from '../engine/standing'
-import { Arrow, Choice, Disclose, Flags, KV, Money, Multi, Question, RangeBar, Seg, Stepper, Toggle, useTween } from '../ui/primitives'
+import { healthPlansView, healthStanding, termStanding } from '../engine/standing'
+import { Arrow, Choice, Disclose, Flags, KV, Money, Multi, Question, RangeBar, Seg, Stepper, useTween } from '../ui/primitives'
 
-const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }, { id: 'motor', label: 'Motor' }] as const
+const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }] as const
 
 export default function Amount({ go, product }: { go: (to: string) => void; product?: string }) {
   const { p } = useProfile()
   const flow = useFlow()
   const needs = computeNeeds(needsInputOf(p))
   const first = needs.firstMove?.product ?? 'term'
-  const tab: Product = product === 'term' || product === 'health' || product === 'motor' ? product : first
-  const hasVehicle = p.owns.includes('car') || p.owns.includes('bike')
+  const tab: Product = product === 'term' || product === 'health' ? product : first
   const nothing = nothingToBuy(tab, p)
 
   return (
@@ -35,12 +33,10 @@ export default function Amount({ go, product }: { go: (to: string) => void; prod
       {!flow.scoped && (
         <div style={{ marginBottom: 24 }}>
           <Seg<Product> label="Product" value={tab} onChange={(v) => go(`amount/${v}`)} options={TABS.map((t) => ({ id: t.id, label: t.label }))} />
-          {tab === 'motor' && !hasVehicle && <p className="caption" style={{ marginTop: 8 }}>You did not mention a vehicle in step 1. Edit the details to check one.</p>}
         </div>
       )}
       {tab === 'term' && <TermAmount go={go} />}
       {tab === 'health' && <HealthAmount go={go} />}
-      {tab === 'motor' && <MotorAmount go={go} />}
     </div>
   )
 }
@@ -59,7 +55,7 @@ function Flow({ questions, summary, details, live, go, product }: { questions: R
   const suggested = nothing ? [] : bundleFor(product, p).takes
   const items = assumptionsFor(product, p)
   // Arriving at one product on its own, with nothing known yet, starts with a few details instead of a guess.
-  const [editing, setEditing] = useState(flow.scoped && !p.touched.age && product !== 'motor')
+  const [editing, setEditing] = useState(flow.scoped && !p.touched.age)
   const [flash, setFlash] = useState(0)
   const close = () => {
     setEditing(false)
@@ -108,7 +104,7 @@ function Flow({ questions, summary, details, live, go, product }: { questions: R
       <div className="actionbar only-m">{cta}</div>
 
       <Sheet open={editing} onClose={close} title="Your details" live={<LiveLine live={live} />}>
-        <div className="qs">{flow.scoped && product !== 'motor' && <AboutYou product={product} />}{questions}</div>
+        <div className="qs">{flow.scoped && <AboutYou product={product} />}{questions}</div>
       </Sheet>
     </>
   )
@@ -231,7 +227,7 @@ function TermAmount({ go }: { go: (to: string) => void }) {
         <div className="stack">
           <p className="eyebrow result__eyebrow">Term cover</p>
           <h2 className="h1">{unknown ? 'Tell us who depends on you.' : 'You may not need term cover yet.'}</h2>
-          <p className="body small">{unknown ? 'Tap Edit and we will work it out.' : 'Nobody depends on your income and you owe nothing.'}</p>
+          <p className="body small">{unknown ? 'Tap Edit and we will work it out.' : r.gapTooSmall ? 'Nobody depends on your income, and what is left to cover is too small for a policy of its own.' : 'Nobody depends on your income and you owe nothing.'}</p>
         </div>
       )
     }
@@ -239,7 +235,7 @@ function TermAmount({ go }: { go: (to: string) => void }) {
       <>
         {st.kind === 'partly' ? (
           <Big value={r.recommended} label={st.addLabel} sub={<>You hold {inr(r.existing)} of the {inr(r.grossNeed)} needed.</>} />
-        ) : <Big value={r.recommended} label="Term cover to buy" sub={!p.noIncome ? <>About {times(r.multipleOfIncome, 1)} your yearly income.</> : 'Replaces the cost of your work.'} />}
+        ) : <Big value={r.recommended} label="Term cover to buy" sub={r.raisedToMin ? <>Your need works out to about {inr(roundTo(r.need.mid, 1000))}. {inr(25 * LAKH)} is the smallest policy we suggest.</> : !p.noIncome ? <>About {times(r.multipleOfIncome, 1)} your yearly income.</> : 'Replaces the cost of your work.'} />}
         <Rows rows={premiumRows} />
         <Flags items={binding} />
       </>
@@ -402,96 +398,6 @@ function HealthWorking({ r }: { r: ReturnType<typeof computeHealth> }) {
     </>
   )
 }
-
-/* ───────────────────────── MOTOR ───────────────────────── */
-function MotorAmount({ go }: { go: (to: string) => void }) {
-  const { p, set } = useProfile()
-  const r = computeMotor(motorInputOf(p))
-  const vb = valueBounds(p.vehicleKind, p.vehicleAge)
-  const car = p.vehicleKind === 'car'
-  const where = [...(p.floodProne ? ['flood' as const] : []), ...(p.highwayHeavy ? ['hwy' as const] : []), ...(p.streetParking ? ['street' as const] : [])]
-  const setKind = (k: 'car' | 'bike') => { const b = valueBounds(k, p.vehicleAge); set({ vehicleKind: k, vehicleValue: b.default }) }
-  const setAge = (a: VehicleAge) => { const b = valueBounds(p.vehicleKind, a); set({ vehicleAge: a, vehicleValue: Math.min(b.max, Math.max(b.min, a === '5plus' || p.vehicleAge === '5plus' ? b.default : p.vehicleValue)) }) }
-
-  const questions = (
-    <>
-      <Question title="Tell us about the vehicle">
-        <Seg label="Vehicle" value={p.vehicleKind} onChange={setKind} options={[{ id: 'car', label: 'Car' }, { id: 'bike', label: 'Two-wheeler' }]} />
-        {car
-          ? <Choice<CarCc> label="Engine size" value={p.carCc} onChange={(carCc) => set({ carCc })} options={(Object.keys(ccLabel.car) as CarCc[]).map((id) => ({ id, label: ccLabel.car[id] }))} />
-          : <Choice<BikeCc> label="Engine size" value={p.bikeCc} onChange={(bikeCc) => set({ bikeCc })} options={(Object.keys(ccLabel.bike) as BikeCc[]).map((id) => ({ id, label: ccLabel.bike[id] }))} />}
-        <Choice<VehicleAge> label="Age of vehicle" value={p.vehicleAge} onChange={setAge} options={AGE_ORDER.map((id) => ({ id, label: ageLabel[id] }))} />
-        <Money label={p.vehicleAge === '5plus' ? 'What it would sell for today' : 'Ex-showroom price when new'} value={Math.min(vb.max, Math.max(vb.min, p.vehicleValue))} min={vb.min} max={vb.max} step={vb.step} why={`For ${car ? 'a car' : 'a two-wheeler'} of this age, between ${inr(vb.min)} and ${inr(vb.max)}.`}
-          hint={p.vehicleAge === '5plus' ? 'Over five years, the insured value is agreed with the insurer. Check used-vehicle listings.' : 'We apply the standard depreciation for its age.'} onChange={(vehicleValue) => set({ vehicleValue })} />
-      </Question>
-
-      <Question title="Is it insured, on a loan, and could you replace it from savings?">
-        <div className="stack--sm stack"><span className="label">Do you already insure it?</span>
-          <Seg<'none' | 'thirdParty' | 'comprehensive'> label="Existing policy" value={p.covered.includes('ownMotor') ? p.motorPolicy : 'none'} onChange={(v) => set(v === 'none' ? { covered: p.covered.filter((c) => c !== 'ownMotor') } : { covered: [...new Set([...p.covered, 'ownMotor' as const])], motorPolicy: v })}
-            options={[{ id: 'none', label: 'Not yet' }, { id: 'thirdParty', label: 'Third-party only' }, { id: 'comprehensive', label: 'Comprehensive' }]} /></div>
-        <div className="stack--sm stack"><span className="label">On a loan?</span><Toggle label="On a loan" value={p.owns.includes('vehicleLoan')} onChange={(on) => set({ owns: on ? [...new Set([...p.owns, 'vehicleLoan' as const])] : p.owns.filter((o) => o !== 'vehicleLoan') })} /></div>
-        <div className="stack--sm stack"><span className="label">Could you replace it, or pay for a major repair, from savings?</span><Toggle label="Could replace" value={p.couldReplace} onChange={(couldReplace) => set({ couldReplace })} /></div>
-      </Question>
-
-      <Question title="Where do you drive and park?">
-        <Multi label="Driving and parking" value={where} none="None of these" onChange={(v) => set({ floodProne: v.includes('flood'), highwayHeavy: v.includes('hwy'), streetParking: v.includes('street') })}
-          options={[{ id: 'flood', label: 'Flood-prone area' }, { id: 'hwy', label: 'Long highway runs' }, { id: 'street', label: 'Street parking' }]} />
-        <Ripple product="motor" ids={['floodProne', 'highwayHeavy', 'streetParking']} />
-      </Question>
-
-      <Question title="What is your no-claim bonus?">
-        <Choice<'0' | '20' | '25' | '35' | '45' | '50'> label="No-claim bonus" value={String(p.ncb) as '0'} onChange={(v) => set({ ncb: Number(v) })} options={(['0', '20', '25', '35', '45', '50'] as const).map((id) => ({ id, label: id === '0' ? 'None' : `${id}%` }))} />
-        <div className="stack--sm stack"><span className="label">Would you claim for small dents and scratches?</span><Toggle label="Claim small dents" value={p.claimSmallDents} onChange={(claimSmallDents) => set({ claimSmallDents })} /></div>
-        <Ripple product="motor" ids={['ncb', 'claimSmallDents']} />
-      </Question>
-
-      <Question title="Who else rides, and do you have accident cover?">
-        <div className="stack--sm stack"><span className="label">Do you often carry family or colleagues?</span><Toggle label="Carry passengers" value={p.carriesPassengers} onChange={(carriesPassengers) => set({ carriesPassengers })} /></div>
-        <div className="stack--sm stack"><span className="label">Do you already hold a personal accident plan of ₹15 lakh or more?</span><Toggle label="Has accident cover" value={p.hasPA15L} onChange={(hasPA15L) => set({ hasPA15L })} /></div>
-        <Ripple product="motor" ids={['carriesPassengers', 'hasPA15L']} />
-      </Question>
-    </>
-  )
-
-  const st = motorStanding(p)
-  const summary = (): ReactNode => {
-    if (st.kind === 'sorted') return <StandingHero s={st} compact />
-    return (
-      <>
-        <Big value={r.idv} label={st.kind === 'partly' ? 'Own-damage cover to add' : 'Insured value'} sub={st.kind === 'partly' ? 'You hold third-party only. We recommend comprehensive.' : <>We recommend {r.recommended === 'comprehensive' ? 'comprehensive cover' : 'third-party cover only'}.</>} />
-        <Rows rows={[r.recommended === 'comprehensive'
-          ? ['Typical premium', <span className="strong">{range(r.premium.comprehensive.low, r.premium.comprehensive.high)} a year</span>]
-          : ['Typical premium', <>{inrFull(r.premium.thirdPartyOnly.mid)} a year</>]]} />
-      </>
-    )
-  }
-  const live: Live = { label: 'Insured value', value: inr(r.idv), sub: r.recommended === 'comprehensive' ? `${range(r.premium.comprehensive.low, r.premium.comprehensive.high)} a year` : `${inrFull(r.premium.thirdPartyOnly.mid)} a year` }
-  const details = (
-    <>
-      {st.kind === 'sorted' && <KeepList items={st.keep} />}
-      <p className="body small">{r.why[0]}</p>
-      <Rows rows={[
-        ['Third-party only', <>{inrFull(r.premium.thirdPartyOnly.mid)} a year</>],
-        ['Comprehensive', <>{range(r.premium.comprehensive.low, r.premium.comprehensive.high)} a year</>],
-        ['Comprehensive with the add-ons we suggest', <>{range(r.premium.withAddons.low, r.premium.withAddons.high)} a year</>],
-        ['Your no-claim bonus', r.ncb > 0 ? `${r.ncb}% off the own-damage part` : 'None yet'],
-        ['Counted as a total loss at', `Repairs above ${inr(r.totalLossAt)}`],
-      ]} />
-      <Flags items={st.kind === 'sorted' ? r.flags.filter((f) => f.level === 'critical' || f.level === 'warn') : r.flags} />
-      <ImpactPanel product="motor" />
-      <div className="stack stack--sm">
-        <p className="eyebrow">How we got this</p>
-        <p className="body small">Third-party cover is the law and its price is fixed by the government, the same at every insurer. Own-damage cover is your choice, and the only part insurers compete on.</p>
-        <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Step</th><th>Working</th><th className="r">Amount</th></tr></thead>
-          <tbody>{r.steps.map((s, i) => <tr key={i}><td>{s.label}</td><td className="muted" style={{ fontWeight: 500 }}>{s.formula ?? ''}</td><td className="r">{s.value}</td></tr>)}</tbody></table></div>
-        <p className="caption">Third-party rates are the government-notified rates of 1 June 2022. A revision has been proposed but not confirmed. Third-party property damage is capped at {inr(r.tpPropertyLimit)} for private cars; there is no cap on claims for injury or loss of life. Own-damage rates are calibrated to one published example (a ₹14 lakh IDV car with 35% no-claim bonus costing about ₹15,600 for the base policy), so treat them as an indicative range.</p>
-      </div>
-    </>
-  )
-
-  return <Flow product="motor" questions={questions} summary={summary} details={details} live={live} go={go} />
-}
-
 
 /** The few things we need when someone arrives at one product with nothing known yet. */
 function AboutYou({ product }: { product: Product }) {

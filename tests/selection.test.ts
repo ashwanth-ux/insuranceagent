@@ -4,10 +4,10 @@ import { addonItems, addonKey, outcomeFor } from '../src/engine/selection'
 import { bundleFor } from '../src/engine/bundles'
 import { sanitize, type Profile } from '../src/state/profile'
 
-const P = (o: Partial<Profile>) => sanitize({ age: 32, income: 24 * LAKH, dependents: ['spouse', 'children'], kids: 1, spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', owns: ['car'], vehicleKind: 'car', vehicleAge: '1to2', vehicleValue: 12 * LAKH, ...o })
+const P = (o: Partial<Profile>) => sanitize({ age: 32, income: 24 * LAKH, dependents: ['spouse', 'children'], kids: 1, spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', ...o })
 
 describe('add-ons are chosen, and the outcome follows the choice', () => {
-  for (const product of ['term', 'health', 'motor'] as const) {
+  for (const product of ['term', 'health'] as const) {
     it(`${product}: what we suggest starts switched on, and nothing else does`, () => {
       for (const i of addonItems(product, P({}))) expect(i.on, `${product}.${i.id}`).toBe(i.verdict === 'take' && i.selectable)
     })
@@ -57,16 +57,10 @@ describe('add-ons are chosen, and the outcome follows the choice', () => {
     expect(outcomeFor('term', { ...P({}), addons: { 'term.savings': true } }).picked).not.toContain(s.label)
   })
   it('the base plus the add-ons equals the total', () => {
-    for (const product of ['term', 'health', 'motor'] as const) {
-      const o = outcomeFor(product, P({ dependents: ['spouse', 'children', 'parents'], parents: 2, floodProne: true, carriesPassengers: true }))
+    for (const product of ['term', 'health'] as const) {
+      const o = outcomeFor(product, P({ dependents: ['spouse', 'children', 'parents'], parents: 2 }))
       expect(Math.abs(o.base.mid + o.extras.mid - o.total.mid)).toBeLessThanOrEqual(1)
     }
-  })
-  it('motor: add-ons only apply to comprehensive cover', () => {
-    const old = P({ owns: ['bike'], vehicleKind: 'bike', vehicleAge: '5plus', vehicleValue: 35_000, couldReplace: true })
-    const items = addonItems('motor', old)
-    expect(items.filter((i) => i.selectable).every((i) => i.id === 'passenger')).toBe(true)
-    expect(outcomeFor('motor', old).extras.high).toBe(0)
   })
   it('selections never leak between products', () => {
     const p = { ...P({}), addons: { 'term.wop': false } }
@@ -85,7 +79,6 @@ describe('step 2 talks about base plans only', () => {
   })
   it('the add-ons we suggest are named on the bundle, for the summary strip', () => {
     expect(bundleFor('health', P({})).takes).toContain('Super top-up')
-    expect(bundleFor('motor', P({ floodProne: true })).takes.join(' ')).toMatch(/engine/i)
     expect(bundleFor('term', P({ familyHistory: true, freeSavings: 60 * LAKH })).takes.join(' ')).toMatch(/critical illness/i)
   })
 })

@@ -5,18 +5,19 @@ import { nothingToBuy, outcomeFor } from '../engine/selection'
 import { PRODUCT_NAME, PRODUCT_TITLE, useFlow } from '../flow'
 import { useProfile, type Product } from '../state/profile'
 import { Arrow } from '../ui/primitives'
+import { Feedback } from '../ui/Feedback'
 import { Report } from '../ui/Report'
 
-const ALL: Product[] = ['term', 'health', 'motor']
+const ALL: Product[] = ['term', 'health']
 
 /** The last page of a flow: it says plainly that the person is finished, and hands them the report as a PDF. */
 export default function Done({ go, product }: { go: (to: string) => void; product?: string }) {
   const { p } = useProfile()
   const flow = useFlow()
-  const tab: Product = product === 'term' || product === 'health' || product === 'motor' ? product : 'term'
+  const tab: Product = product === 'term' || product === 'health' ? product : 'term'
   const nothing = nothingToBuy(tab, p)
   const out = useMemo(() => outcomeFor(tab, p), [tab, p])
-  const products = useMemo(() => reportProducts(flow.scoped, tab, p), [flow.scoped, tab, p])
+  const products = useMemo(() => reportProducts(flow.scoped, tab), [flow.scoped, tab])
   const sections = useMemo(() => products.map((x) => sectionFor(x, p)), [products, p])
   const everyNothing = sections.every((s) => s.nothing)
   const title = flow.scoped ? `Your ${PRODUCT_TITLE[tab]} report` : 'Your insurance guide report'
@@ -42,6 +43,8 @@ export default function Done({ go, product }: { go: (to: string) => void; produc
           <p className="caption">Choose “Save as PDF” as the destination in the window that opens.</p>
         </div>
       </div>
+
+      <Feedback key={flow.scoped ? tab : 'full'} journey={flow.scoped ? tab : 'full'} />
 
       <Report title={title} sections={sections} />
 

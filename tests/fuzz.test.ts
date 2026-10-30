@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { searchFaq } from '../src/engine/faq'
 import { addonItems, outcomeFor } from '../src/engine/selection'
 import { computeHealth } from '../src/engine/health'
-import { computeMotor } from '../src/engine/motor'
 import { computeNeeds } from '../src/engine/needs'
 import { computeTerm } from '../src/engine/term'
-import { effectiveSpend, healthInputOf, kidsOf, monthlyEmi, motorInputOf, needsInputOf, termInputOf } from '../src/state/derive'
+import { effectiveSpend, healthInputOf, kidsOf, monthlyEmi, needsInputOf, termInputOf } from '../src/state/derive'
 import { sanitize, type Profile } from '../src/state/profile'
 
 // Deterministic PRNG so failures reproduce.
@@ -20,13 +19,12 @@ const logr = (lo: number, hi: number) => Math.exp(range(Math.log(lo), Math.log(h
 function randomRaw(): Record<string, unknown> {
   return {
     age: maybe(Math.round(range(10, 100))), gender: maybe(pick(['male', 'female', 'other', 'x'])), smoker: maybe(rnd() < 0.5),
-    dependents: maybe([pick(['spouse', 'children', 'parents', 'pets'])]), income: maybe(logr(1e4, 5e9)), noIncome: maybe(rnd() < 0.3), owns: maybe([pick(['homeLoan', 'vehicleLoan', 'otherLoan', 'car', 'bike'])]), covered: maybe([pick(['ownHealth', 'employerHealth', 'ownTerm', 'employerLife', 'savingsPlan'])]),
+    dependents: maybe([pick(['spouse', 'children', 'parents', 'pets'])]), income: maybe(logr(1e4, 5e9)), noIncome: maybe(rnd() < 0.3), owns: maybe([pick(['homeLoan', 'vehicleLoan', 'otherLoan'])]), covered: maybe([pick(['ownHealth', 'employerHealth', 'ownTerm', 'employerLife', 'savingsPlan'])]),
     spouseEarns: maybe(rnd() < 0.5), kids: maybe(Math.round(range(-2, 12))), youngestChildAge: maybe(Math.round(range(-3, 40))), monthlySpend: maybe(rnd() < 0.5 ? null : logr(100, 1e8)), loans: maybe(rnd() < 0.5 ? null : logr(1, 1e10)),
     goalEducation: maybe(rnd() < 0.5), goalMarriage: maybe(rnd() < 0.5), freeSavings: maybe(logr(1, 1e10)), existingTerm: maybe(logr(1, 1e11)), yearsOverride: maybe(rnd() < 0.5 ? null : Math.round(range(-5, 80))),
     city: maybe(pick(['metro', 'tier2', 'other', 'moon'])), hospital: maybe(pick(['top', 'standard', 'local', 'x'])), parents: maybe(pick([0, 1, 2, 3, -1])), parentAge: maybe(Math.round(range(0, 120))), ownCover: maybe(logr(1, 1e10)), employerCover: maybe(logr(1, 1e10)),
     knownCondition: maybe(rnd() < 0.5), familyHistory: maybe(rnd() < 0.5), babyPlanned: maybe(rnd() < 0.5), savingsForBill: maybe(logr(1, 1e10)),
-    vehicleKind: maybe(pick(['car', 'bike', 'boat'])), carCc: maybe(pick(['upto1000', '1000to1500', 'above1500', 'x'])), bikeCc: maybe(pick(['upto75', '75to150', '150to350', 'above350', 'x'])), vehicleAge: maybe(pick(['lt6m', '6m1y', '1to2', '2to3', '3to4', '4to5', '5plus', 'zzz'])),
-    vehicleValue: maybe(logr(1, 1e10)), onLoan: maybe(rnd() < 0.5), couldReplace: maybe(rnd() < 0.5), floodProne: maybe(rnd() < 0.5), highwayHeavy: maybe(rnd() < 0.5), streetParking: maybe(rnd() < 0.5), ncb: maybe(Math.round(range(-10, 90))), claimSmallDents: maybe(rnd() < 0.5), carriesPassengers: maybe(rnd() < 0.5), hasPA15L: maybe(rnd() < 0.5),
+    onLoan: maybe(rnd() < 0.5),
     heavyCommute: maybe(rnd() < 0.5), selfEmployed: maybe(rnd() < 0.5), lumpSum: maybe(pick(['yes', 'no', 'unsure', 'q'])), priority: maybe(pick(['certainty', 'strength', 'service', 'z'])), revealed: maybe({ need: true, 'amount.term': rnd() < 0.5 }),
   }
 }
@@ -47,21 +45,20 @@ describe('fuzz: 20,000 hostile profiles through every calculation', () => {
       let p: Profile
       try { p = sanitize(raw as Partial<Profile>) } catch (e) { fails.push(`sanitize threw ${String(e)} for ${JSON.stringify(raw).slice(0, 200)}`); continue }
       try {
-        const t = computeTerm(termInputOf(p)), h = computeHealth(healthInputOf(p)), m = computeMotor(motorInputOf(p)), nd = computeNeeds(needsInputOf(p))
-        const ta = addonItems('term', p), ha = addonItems('health', p), ma = addonItems('motor', p)
-        const oc = { t: outcomeFor('term', p), h: outcomeFor('health', p), m: outcomeFor('motor', p) }
-        const all = { t, h, m, nd, ta, ha, ma, oc }
+        const t = computeTerm(termInputOf(p)), h = computeHealth(healthInputOf(p)), nd = computeNeeds(needsInputOf(p))
+        const ta = addonItems('term', p), ha = addonItems('health', p)
+        const oc = { t: outcomeFor('term', p), h: outcomeFor('health', p) }
+        const all = { t, h, nd, ta, ha, oc }
         const nf = finite(all)
         if (nf.length) fails.push(`non-finite ${nf.slice(0, 3).join(', ')}`)
         const text = JSON.stringify(all)
         if (bad(text)) fails.push(`bad text in output: ${text.match(/.{20}(NaN|undefined|Infinity|\[object).{20}/)?.[0]}`)
-        for (const [k, v] of Object.entries({ rec: t.recommended, need: t.need.mid, tprem: t.premium.mid, htot: h.recommendedTotal, hprem: h.premium.total.mid, idv: m.idv, mprem: m.premium.comprehensive.mid }))
+        for (const [k, v] of Object.entries({ rec: t.recommended, need: t.need.mid, tprem: t.premium.mid, htot: h.recommendedTotal, hprem: h.premium.total.mid }))
           if (v < 0) fails.push(`negative ${k}=${v}`)
         if (t.need.low > t.need.mid + 1 || t.need.mid > t.need.high + 1) fails.push(`term range out of order ${t.need.low}/${t.need.mid}/${t.need.high}`)
         if (t.premium.low > t.premium.high) fails.push('term premium range inverted')
         if (h.premium.total.low > h.premium.total.high) fails.push('health premium range inverted')
         for (const o of Object.values(oc)) if (o.total.low > o.total.high || o.total.low < 0) fails.push('outcome premium range inverted or negative')
-        if (m.premium.comprehensive.low > m.premium.comprehensive.high) fails.push('motor premium range inverted')
         if (t.recommended > t.eligibility.additionalAllowed + 1) fails.push(`recommended above insurer ceiling`)
         if (t.recommended % 500000 !== 0 && t.recommended !== 0) fails.push(`recommended not a ₹5L step: ${t.recommended}`)
       } catch (e) { fails.push(`engine threw ${String(e)} for ${JSON.stringify(raw).slice(0, 160)}`) }
@@ -72,7 +69,7 @@ describe('fuzz: 20,000 hostile profiles through every calculation', () => {
   }, 120_000)
 
   it('FAQ search never throws on 5,000 random strings built from insurance words and noise', () => {
-    const words = ['term', 'health', 'car', 'bike', 'cover', 'premium', 'ncb', 'idv', 'lakh', 'crore', '45', '₹', 'hdfc', 'lic', 'vs', 'best', 'how much', 'what is', '?', '!', ',', 'wife', 'kid', 'loan', 'earn', 'smoke', '000', '1e9', '-5', 'zero dep', 'claim', 'reject', 'hide', 'hindi', 'kitna', '😀', '<b>', '\n']
+    const words = ['term', 'health', 'cover', 'premium', 'lakh', 'crore', '45', '₹', 'hdfc', 'lic', 'vs', 'best', 'how much', 'what is', '?', '!', ',', 'wife', 'kid', 'loan', 'earn', 'smoke', '000', '1e9', '-5', 'zero dep', 'claim', 'reject', 'hide', 'hindi', 'kitna', '😀', '<b>', '\n']
     for (let i = 0; i < 5000; i++) {
       const q = Array.from({ length: Math.floor(range(1, 18)) }, () => pick(words)).join(rnd() < 0.5 ? ' ' : '')
       const r = searchFaq(q)

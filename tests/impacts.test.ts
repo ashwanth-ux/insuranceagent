@@ -3,14 +3,14 @@ import { LAKH } from '../src/engine/format'
 import { impactsFor } from '../src/engine/impacts'
 import { sanitize, type Profile } from '../src/state/profile'
 
-const base: Partial<Profile> = { age: 32, income: 24 * LAKH, dependents: ['spouse'], spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', owns: ['car'], vehicleKind: 'car', vehicleAge: '1to2', vehicleValue: 12 * LAKH }
+const base: Partial<Profile> = { age: 32, income: 24 * LAKH, dependents: ['spouse'], spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard' }
 const P = (o: Partial<Profile>) => sanitize({ ...base, ...o })
-const get = (product: 'term' | 'health' | 'motor', p: Profile, id: string) => impactsFor(product, p).find((i) => i.id === id)!
+const get = (product: 'term' | 'health', p: Profile, id: string) => impactsFor(product, p).find((i) => i.id === id)!
 
 describe('every answer the user gives is acknowledged', () => {
-  const loaded = P({ dependents: ['spouse', 'children', 'parents'], kids: 2, youngestChildAge: 4, babyPlanned: true, knownCondition: true, familyHistory: true, selfEmployed: true, smoker: true, heavyCommute: true, owns: ['homeLoan', 'car'], loans: 40 * LAKH, goalEducation: true, freeSavings: 10 * LAKH,
-    covered: ['ownHealth', 'employerHealth', 'employerLife'], ownCover: 5 * LAKH, employerCover: 5 * LAKH, onLoan: true, floodProne: true, highwayHeavy: true, streetParking: true, ncb: 50, claimSmallDents: true, carriesPassengers: true, hasPA15L: true })
-  for (const product of ['term', 'health', 'motor'] as const) {
+  const loaded = P({ dependents: ['spouse', 'children', 'parents'], kids: 2, youngestChildAge: 4, babyPlanned: true, knownCondition: true, familyHistory: true, selfEmployed: true, smoker: true, heavyCommute: true, owns: ['homeLoan'], loans: 40 * LAKH, goalEducation: true, freeSavings: 10 * LAKH,
+    covered: ['ownHealth', 'employerHealth', 'employerLife'], ownCover: 5 * LAKH, employerCover: 5 * LAKH, onLoan: true })
+  for (const product of ['term', 'health'] as const) {
     it(`${product}: every active answer has a reason and a label`, () => {
       const rows = impactsFor(product, loaded)
       expect(rows.length).toBeGreaterThan(5)
@@ -77,18 +77,6 @@ describe('the answers people worry about', () => {
     expect(i.premiumDelta).toBeGreaterThan(0)
     expect(i.coverLine).toMatch(/stays/)
   })
-  it('motor: flood-prone adds engine protect', () => {
-    const i = get('motor', P({ floodProne: true }), 'floodProne')
-    expect(i.addons.join(' ')).toMatch(/engine/i)
-  })
-  it('motor: carrying passengers adds a passenger add-on', () => {
-    const i = get('motor', P({ carriesPassengers: true }), 'carriesPassengers')
-    expect(i.addons.join(' ')).toMatch(/passenger/i)
-  })
-  it('motor: NCB lowers the premium', () => {
-    const i = get('motor', P({ ncb: 50 }), 'ncb')
-    expect(i.premiumDelta).toBeLessThan(0)
-  })
   it('inactive answers are not listed', () => {
     const ids = impactsFor('health', P({})).map((i) => i.id)
     expect(ids).not.toContain('babyPlanned')
@@ -105,9 +93,9 @@ describe('hostile profiles never break the explanations', () => {
     const bool = () => rnd() < 0.5
     const wild = () => pick([0, -5, 1e15, NaN, 12345, 5 * LAKH, 99 * LAKH, 3e9])
     for (let n = 0; n < 3000; n++) {
-      const p = sanitize({ age: wild(), income: wild(), monthlySpend: wild(), loans: wild(), freeSavings: wild(), parentSupportMonthly: wild(), ownCover: wild(), employerCover: wild(), savingsForBill: wild(), vehicleValue: wild(), ncb: wild(), existingTerm: wild(),
-        dependents: ['spouse', 'children', 'parents'].filter(bool) as Profile['dependents'], spouseEarns: bool(), babyPlanned: bool(), knownCondition: bool(), familyHistory: bool(), smoker: bool(), noIncome: bool(), onLoan: bool(), couldReplace: bool(), floodProne: bool(), carriesPassengers: bool(), covered: ['ownHealth', 'employerHealth', 'ownTerm', 'employerLife'].filter(bool) as Profile['covered'] })
-      for (const product of ['term', 'health', 'motor'] as const)
+      const p = sanitize({ age: wild(), income: wild(), monthlySpend: wild(), loans: wild(), freeSavings: wild(), parentSupportMonthly: wild(), ownCover: wild(), employerCover: wild(), savingsForBill: wild(), existingTerm: wild(),
+        dependents: ['spouse', 'children', 'parents'].filter(bool) as Profile['dependents'], spouseEarns: bool(), babyPlanned: bool(), knownCondition: bool(), familyHistory: bool(), smoker: bool(), noIncome: bool(), onLoan: bool(), covered: ['ownHealth', 'employerHealth', 'ownTerm', 'employerLife'].filter(bool) as Profile['covered'] })
+      for (const product of ['term', 'health'] as const)
         for (const i of impactsFor(product, p)) expect(`${i.why} ${i.coverLine} ${i.premiumLine} ${i.todo.join(' ')}`).not.toMatch(/NaN|undefined|Infinity/)
     }
   })

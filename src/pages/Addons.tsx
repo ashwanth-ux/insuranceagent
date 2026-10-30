@@ -4,7 +4,7 @@ import { emit } from '../bridge'
 import { addonItems, addonKey, nothingToBuy, outcomeFor, rangeText, shortRange, type AddonItem } from '../engine/selection'
 import { effectiveSpend, monthlyEmi } from '../state/derive'
 import { useProfile, type Lump, type Product } from '../state/profile'
-import { HEALTH_PLAN_CHECKLIST, HEALTH_PLANS, MOTOR_INSURER_TERMS, SOURCES, TERM_PLANS, TERM_RIDER_RULES } from '../data/plans'
+import { HEALTH_PLAN_CHECKLIST, HEALTH_PLANS, SOURCES, TERM_PLANS, TERM_RIDER_RULES } from '../data/plans'
 import { insurerBySlug } from '../engine/kb'
 import { useEffect, useState } from 'react'
 import { Sheet } from '../ui/Sheet'
@@ -13,7 +13,7 @@ import { NothingToBuy } from '../ui/Impacts'
 import { PageHead } from '../ui/Page'
 import { Arrow, Choice, Disclose, Question, Seg, Toggle } from '../ui/primitives'
 
-const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }, { id: 'motor', label: 'Motor' }] as const
+const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }] as const
 
 /** A plan's premium shown as a range, never a single figure: a published illustration is not a quote. */
 const around = (n: number, spread = 0.1) => {
@@ -25,7 +25,7 @@ const around = (n: number, spread = 0.1) => {
 export default function Addons({ go, product }: { go: (to: string) => void; product?: string }) {
   const flow = useFlow()
   const { p } = useProfile()
-  const tab: Product = product === 'term' || product === 'health' || product === 'motor' ? product : 'term'
+  const tab: Product = product === 'term' || product === 'health' ? product : 'term'
   const nothing = nothingToBuy(tab, p)
   return (
     <div className="shell shell--wide page flow pagebar">
@@ -87,7 +87,7 @@ function Outcome({ product, go }: { product: Product; go: (to: string) => void }
       <div className="outcome__total">
         <span className="eyebrow">Premium, a year</span>
         <strong className="outcome__big">{out.total.high > 0 ? rangeText(out.total) : '₹0'}</strong>
-        <span className="caption">Indicative, not a quote.{product === 'motor' ? ' Includes GST.' : ''}</span>
+        <span className="caption">Indicative, not a quote.</span>
       </div>
       {out.base.high > 0 && out.extras.high > 0 && (
         <dl className="kv2">
@@ -115,17 +115,15 @@ function Picker({ product, go }: { product: Product; go: (to: string) => void })
   const total = out.total.high > 0 ? rangeText(out.total) : '₹0'
   const outKey = JSON.stringify([out.lines, out.total, out.picked])
   useEffect(() => { emit({ type: 'outcome', product, lines: out.lines, premium: { low: out.total.low, high: out.total.high }, addons: out.picked }) }, [outKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  const comprehensiveOnly = product === 'motor' && !items.some((i) => i.selectable && i.id !== 'passenger')
-  const hasTune = product !== 'motor'
 
   return (
     <div className="pick">
       <div className="pick__list">
-        <p className="hint2">{comprehensiveOnly ? 'Add-ons sit on a comprehensive policy. For this vehicle we suggest third-party only.' : 'We switched on what fits you. Prices are per year.'}</p>
+        <p className="hint2">We switched on what fits you. Prices are per year.</p>
         {take.length > 0 && <section aria-label="Suggested for you"><h2 className="grp">Suggested for you</h2>{list(take)}</section>}
         {consider.length > 0 && <section aria-label="Worth a look"><h2 className="grp">Worth a look</h2>{list(consider)}</section>}
         {skip.length > 0 && <section aria-label="Not for you"><Disclose title={`Not for you right now (${skip.length})`}>{list(skip)}</Disclose></section>}
-        {hasTune && <button type="button" className="rowlink" onClick={() => setTune(true)}><span className="rowlink__l"><span className="rowlink__t">Fine-tune</span><span className="rowlink__v">Tell us a bit more to sharpen these</span></span><span className="rowlink__a">Open</span></button>}
+        <button type="button" className="rowlink" onClick={() => setTune(true)}><span className="rowlink__l"><span className="rowlink__t">Fine-tune</span><span className="rowlink__v">Tell us a bit more to sharpen these</span></span><span className="rowlink__a">Open</span></button>
         <Reference product={product} />
       </div>
 
@@ -152,7 +150,6 @@ function Picker({ product, go }: { product: Product; go: (to: string) => void })
 /** The few questions that change which add-ons we suggest. Optional: the defaults already work. */
 function Extra({ product }: { product: Product }) {
   const { p, set } = useProfile()
-  if (product === 'motor') return null
   return (
     <div className="qs">
       {product === 'term' && <Question title="Do you commute or travel heavily?"><Toggle label="Heavy commute" value={p.heavyCommute} onChange={(heavyCommute) => set({ heavyCommute })} /></Question>}
@@ -207,45 +204,27 @@ function ReferenceInner({ product }: { product: Product }) {
       </div>
     )
   }
-  if (product === 'health') {
-    return (
-      <div className="card" style={{ padding: '0 20px' }}>
-        <Disclose bare title="The clean-plan checklist">
-          <p className="body small">Two plans with the same ₹10 lakh sum insured can pay very different amounts on the same bill. Check these eight things in the policy wording, not the brochure.</p>
-          <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Check</th><th>What good looks like</th></tr></thead>
-            <tbody>{HEALTH_PLAN_CHECKLIST.map((c) => <tr key={c.id}><td>{c.label}<br /><span className="caption" style={{ fontWeight: 500 }}>{c.note}</span></td><td>{c.good}</td></tr>)}</tbody></table></div>
-        </Disclose>
-        <Disclose title="Five well-known plans, side by side">
-          <div className="tbl-wrap"><table className="tbl">
-            <thead><tr><th>Plan</th><th>Room rent</th><th>Existing-condition wait</th><th>Restoration</th><th>Renewal bonus</th></tr></thead>
-            <tbody>{HEALTH_PLANS.map((pl) => (
-              <tr key={pl.id}>
-                <td>{insurerBySlug('health', pl.insurer)?.name ?? pl.insurer}<br /><span className="caption">{pl.name}</span></td>
-                <td>{pl.roomRent === 'none' ? <span style={{ color: '#6ff0a0' }}>No limit</span> : <span style={{ color: 'var(--color-orange-400)' }}>Depends on variant</span>}</td>
-                <td>{pl.pedWaitYears} years{pl.pedReducible ? <><br /><span className="caption">Add-on can cut it</span></> : null}</td>
-                <td className="muted" style={{ fontWeight: 500 }}>{pl.restoration}</td>
-                <td className="muted" style={{ fontWeight: 500 }}>{pl.renewalBonus}</td>
-              </tr>))}</tbody>
-          </table></div>
-          {HEALTH_PLANS.filter((x) => x.variantNote).map((x) => <p key={x.id} className="caption"><span className="strong">{x.name}: </span>{x.variantNote}</p>)}
-          <p className="caption">{SOURCES.dittoHealth.note} {SOURCES.nyvo.note} Plan terms change. Confirm the variant on your quote.</p>
-        </Disclose>
-      </div>
-    )
-  }
   return (
     <div className="card" style={{ padding: '0 20px' }}>
-      <Disclose bare title="Add-on terms differ by insurer">
-        <p className="body small">Not every insurer offers every add-on, and the limits differ. These are the five largest private motor names.</p>
-        <div className="tbl-wrap"><table className="tbl">
-          <thead><tr><th>Insurer</th><th>Zero-dep covers vehicles up to</th><th>Zero-dep claims a year</th><th>Key replacement up to</th><th>Roadside help</th></tr></thead>
-          <tbody>{MOTOR_INSURER_TERMS.filter((t) => t.zeroDepMaxVehicleYears).map((t) => (
-            <tr key={t.insurer}><td>{insurerBySlug('health', t.insurer)?.name ?? t.insurer}</td><td>{t.zeroDepMaxVehicleYears} years</td><td>{t.zeroDepClaimsPerYear === 'unlimited' ? <span style={{ color: '#6ff0a0' }}>Unlimited</span> : t.zeroDepClaimsPerYear}</td><td>{inrFull(t.keyReplacementMax ?? 0)}</td><td className="muted" style={{ fontWeight: 500 }}>{t.roadsideAssist}</td></tr>))}</tbody>
-        </table></div>
-        <p className="caption">{SOURCES.honestMoney.note} Confirm in the policy wording.</p>
+      <Disclose bare title="The clean-plan checklist">
+        <p className="body small">Two plans with the same ₹10 lakh sum insured can pay very different amounts on the same bill. Check these eight things in the policy wording, not the brochure.</p>
+        <div className="tbl-wrap"><table className="tbl"><thead><tr><th>Check</th><th>What good looks like</th></tr></thead>
+          <tbody>{HEALTH_PLAN_CHECKLIST.map((c) => <tr key={c.id}><td>{c.label}<br /><span className="caption" style={{ fontWeight: 500 }}>{c.note}</span></td><td>{c.good}</td></tr>)}</tbody></table></div>
       </Disclose>
-      <Disclose title="Before you claim: pay it yourself or claim?">
-        <p className="body small">A small claim can wipe out a large no-claim bonus. If the repair costs less than the discount you would lose over the next few years, pay it yourself. Without NCB protect, your bonus resets to zero after a claim, then climbs back 20%, 25%, 35% and so on.</p>
+      <Disclose title="Five well-known plans, side by side">
+        <div className="tbl-wrap"><table className="tbl">
+          <thead><tr><th>Plan</th><th>Room rent</th><th>Existing-condition wait</th><th>Restoration</th><th>Renewal bonus</th></tr></thead>
+          <tbody>{HEALTH_PLANS.map((pl) => (
+            <tr key={pl.id}>
+              <td>{insurerBySlug('health', pl.insurer)?.name ?? pl.insurer}<br /><span className="caption">{pl.name}</span></td>
+              <td>{pl.roomRent === 'none' ? <span style={{ color: '#6ff0a0' }}>No limit</span> : <span style={{ color: 'var(--color-orange-400)' }}>Depends on variant</span>}</td>
+              <td>{pl.pedWaitYears} years{pl.pedReducible ? <><br /><span className="caption">Add-on can cut it</span></> : null}</td>
+              <td className="muted" style={{ fontWeight: 500 }}>{pl.restoration}</td>
+              <td className="muted" style={{ fontWeight: 500 }}>{pl.renewalBonus}</td>
+            </tr>))}</tbody>
+        </table></div>
+        {HEALTH_PLANS.filter((x) => x.variantNote).map((x) => <p key={x.id} className="caption"><span className="strong">{x.name}: </span>{x.variantNote}</p>)}
+        <p className="caption">{SOURCES.dittoHealth.note} {SOURCES.nyvo.note} Plan terms change. Confirm the variant on your quote.</p>
       </Disclose>
     </div>
   )

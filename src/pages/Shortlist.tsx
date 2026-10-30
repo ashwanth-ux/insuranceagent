@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react'
-import { HEALTH_PLANS, MOTOR_INSURER_TERMS, SOURCES, TERM_PLANS, type HealthPlan, type TermPlan } from '../data/plans'
+import { useMemo } from 'react'
+import { HEALTH_PLANS, SOURCES, TERM_PLANS, type HealthPlan, type TermPlan } from '../data/plans'
 import { termAddons } from '../engine/addons'
 import { CRORE, inrFull } from '../engine/format'
 import { funnelFor, type Candidate, type Funnel } from '../engine/funnel'
@@ -17,7 +17,7 @@ import { nothingToBuy } from '../engine/selection'
 import { PageHead } from '../ui/Page'
 import { Arrow, Disclose, Seg } from '../ui/primitives'
 
-const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }, { id: 'motor', label: 'Motor' }] as const
+const TABS = [{ id: 'term', label: 'Term life' }, { id: 'health', label: 'Health' }] as const
 
 const MEASURES: Record<Product, { key: string; q: string; priority: Priority }[]> = {
   term: [
@@ -28,9 +28,6 @@ const MEASURES: Record<Product, { key: string; q: string; priority: Priority }[]
     { key: 'csr', q: 'Who settles the most claims?', priority: 'certainty' }, { key: 'complaints', q: 'Who gets complained about least?', priority: 'service' },
     { key: 'network', q: 'Who has the widest cashless network?', priority: 'service' }, { key: 't3m', q: 'Who pays fastest?', priority: 'service' }, { key: 'solvency', q: 'Who has the biggest cushion?', priority: 'strength' }, { key: 'scale', q: 'Who is the biggest?', priority: 'strength' },
   ],
-  motor: [
-    { key: 'solvency', q: 'Who has the biggest cushion?', priority: 'strength' }, { key: 'scale', q: 'Who has the biggest motor book?', priority: 'strength' }, { key: 't3m', q: 'Who pays fastest?', priority: 'service' }, { key: 'garages', q: 'Who has the most cashless garages?', priority: 'service' },
-  ],
 }
 
 const ORDER: Record<Priority, Priority[]> = { certainty: ['certainty', 'strength', 'service'], strength: ['strength', 'certainty', 'service'], service: ['service', 'certainty', 'strength'] }
@@ -38,7 +35,7 @@ const ORDER: Record<Priority, Priority[]> = { certainty: ['certainty', 'strength
 export default function Shortlist({ go, product }: { go: (to: string) => void; product?: string }) {
   const { p, set } = useProfile()
   const flow = useFlow()
-  const tab: Product = product === 'term' || product === 'health' || product === 'motor' ? product : 'term'
+  const tab: Product = product === 'term' || product === 'health' ? product : 'term'
   const nothing = nothingToBuy(tab, p)
   const f = useMemo(() => funnelFor(tab), [tab])
   const survivors = f.survivors.map((c) => ({ slug: c.slug, name: c.name }))
@@ -91,7 +88,6 @@ export default function Shortlist({ go, product }: { go: (to: string) => void; p
             <div className="stack stack--lg" style={{ paddingBottom: 12 }}>
               {tab === 'term' && <TermPlans f={f} />}
               {tab === 'health' && <HealthPlansView f={f} />}
-              {tab === 'motor' && <MotorView f={f} go={go} />}
             </div>
           </Disclose>
         </div>
@@ -121,7 +117,7 @@ export default function Shortlist({ go, product }: { go: (to: string) => void; p
           </Disclose>
         </div>
         <div className="endbar">
-          {tab !== 'motor' ? <button type="button" className="btn" onClick={() => go(flow.to('addons', tab))}>Back to add-ons</button> : <span />}
+          <button type="button" className="btn" onClick={() => go(flow.to('addons', tab))}>Back to add-ons</button>
           <button type="button" className="btn btn--brand" onClick={() => go(flow.to('done', tab))}>Finish <Arrow /></button>
         </div>
       </div>
@@ -163,7 +159,7 @@ function FunnelView({ f, stage }: { f: Funnel; stage: (n: number) => string }) {
 
 /* ───────────────────────── Survivor card ───────────────────────── */
 function Survivor({ product, c }: { product: Product; c: Candidate }) {
-  const facts = factsFor(product, c.slug).slice(0, product === 'motor' ? 4 : 5)
+  const facts = factsFor(product, c.slug).slice(0, 5)
   return (
     <div className="card">
       <div className="row row--between" style={{ marginBottom: 8 }}>
@@ -316,37 +312,6 @@ function HealthCard({ pl }: { pl: HealthPlan }) {
   )
 }
 
-/* ───────────────────────── MOTOR ───────────────────────── */
-function MotorView({ f, go }: { f: Funnel; go: (to: string) => void }) {
-  const flow = useFlow()
-  const rows = f.survivors.map((c) => ({ c, t: MOTOR_INSURER_TERMS.find((x) => x.insurer === c.slug) }))
-  const g = (t?: (typeof MOTOR_INSURER_TERMS)[number]) => (t?.garages ? Object.values(t.garages).filter((x): x is number => typeof x === 'number') : [])
-  const sc = (n: ReactNode) => n
-  return (
-    <section className="stack" aria-label="What to compare next">
-      <h2 className="h2">What separates them</h2>
-      <p className="body small">With motor claims data unpublished insurer by insurer, the deciding factors are practical: garages near you, add-on terms, and price on identical terms.</p>
-      <div className="card">
-        <div className="tbl-wrap"><table className="tbl">
-          <thead><tr><th>Insurer</th><th>Cashless garages</th><th>Zero-dep limit</th><th>Claim speed</th></tr></thead>
-          <tbody>{rows.map(({ c, t }) => {
-            const gs = g(t)
-            return <tr key={c.slug}><td>{c.name}</td><td>{gs.length ? (gs.length > 1 && Math.min(...gs) !== Math.max(...gs) ? `${Math.min(...gs).toLocaleString('en-IN')}–${Math.max(...gs).toLocaleString('en-IN')}` : `${gs[0].toLocaleString('en-IN')}`) : <span className="muted">—</span>}</td>
-              <td>{t?.zeroDepMaxVehicleYears ? <>{t.zeroDepMaxVehicleYears} yrs, {t.zeroDepClaimsPerYear === 'unlimited' ? 'unlimited claims' : `${t.zeroDepClaimsPerYear} claims a year`}</> : <span className="muted">—</span>}</td>
-              <td className="muted" style={{ fontWeight: 500 }}>{sc(t?.claimSpeed ?? '—')}</td></tr>
-          })}</tbody>
-        </table></div>
-        <p className="caption" style={{ marginTop: 12 }}>{SOURCES.honestMoney.note} {SOURCES.policybazaar.note} Counts vary between sources, so a range is shown where they disagree.</p>
-      </div>
-      <div className="card card--insight stack">
-        <p className="title" style={{ color: '#fff' }}>Do this before you buy</p>
-        <p className="small" style={{ fontWeight: 500 }}>Enter your home PIN code on each insurer’s website and count cashless garages within 5 km. Then your office PIN code. A policy with 16,000 garages nationally but three near you is worse than one with 8,000 and fifteen near you.</p>
-      </div>
-      <div className="row"><button type="button" className="btn" onClick={() => go(flow.to('addons', 'motor'))}>Back to add-ons <Arrow /></button></div>
-    </section>
-  )
-}
-
 /* ───────────────────────── Plans for you: a carousel ───────────────────────── */
 function Recommended({ tab, f }: { tab: Product; f: Funnel }) {
   const { p } = useProfile()
@@ -356,7 +321,7 @@ function Recommended({ tab, f }: { tab: Product; f: Funnel }) {
     <section className="stack" aria-label="Plans for you">
       <div className="stack--sm stack">
         <h2 className="h2">{f.survivors.length} of {f.universe} insurers clear the bar</h2>
-        <p className="caption">Indicative premiums for your cover. Not quotes.</p>
+        <p className="caption">Indicative premiums for your cover. Not quotes.{tab === 'health' && ' Health prices are modelled ranges, not insurer rate sheets. Comparison sites advertise “starting from” prices, which sit below a typical quote.'}</p>
       </div>
       <div className="lead-scroll">
         {cards.map((c) => (

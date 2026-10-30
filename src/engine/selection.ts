@@ -2,11 +2,9 @@ import { ciCover, termRiderCost } from './addons'
 import { healthAddonRows, termAddonRows } from './bundles'
 import { inr, inrFull, roundTo } from './format'
 import { computeHealth } from './health'
-import { computeMotor, MOTOR_MODEL } from './motor'
-import { motorStanding } from './standing'
 import { computeTerm } from './term'
 import type { Range, Verdict } from './types'
-import { effectiveSpend, healthInputOf, monthlyEmi, motorInputOf, termInputOf } from '../state/derive'
+import { effectiveSpend, healthInputOf, monthlyEmi, termInputOf } from '../state/derive'
 import type { Product, Profile } from '../state/profile'
 
 /**
@@ -76,26 +74,17 @@ export function addonItems(product: Product, p: Profile): AddonItem[] {
       return { id: r.id, blurb: blurbOf(r.id, r.reason, cover), product, label: r.label, verdict: r.verdict, reason: r.reason, watch: r.watch, cost, costNote, cover, selectable, on: isOn(p, product, r.id, r.verdict, selectable) }
     })
   }
-  if (product === 'health') {
-    const h = computeHealth(healthInputOf(p))
-    return healthAddonRows(p).map((r) => {
-      let cost: Range | null = null
-      let costNote: string | undefined
-      let cover: AddonItem['cover']
-      if (r.id === 'stu') { cost = h.topUp.premium; cover = { amount: h.topUp.size, label: 'Super top-up' } }
-      else if (r.id === 'maternity') cost = h.maternityOption.premium
-      else if (r.id === 'room' || r.id === 'restore') costNote = 'A feature to look for in the plan, not a separate charge'
-      else costNote = 'The insurer prices this'
-      return { id: r.id, blurb: blurbOf(r.id, r.reason, cover), product, label: r.label, verdict: r.verdict, reason: r.reason, watch: r.watch, cost, costNote, cover, selectable: true, on: isOn(p, product, r.id, r.verdict, true) }
-    })
-  }
-  const m = computeMotor(motorInputOf(p))
-  return m.addons.map((a) => ({
-    id: a.id, blurb: firstLine(a.reason), product, label: a.label, verdict: a.verdict, reason: a.reason, watch: a.note,
-    // Motor premiums carry 18% GST that an individual cannot claim back, so every figure shown includes it.
-    cost: a.price ? { low: roundTo(a.price.low * (1 + MOTOR_MODEL.gst), 50), mid: roundTo(a.price.mid * (1 + MOTOR_MODEL.gst), 50), high: roundTo(a.price.high * (1 + MOTOR_MODEL.gst), 50) } : null, costNote: a.price ? undefined : a.priceNote ?? 'The insurer prices this', selectable: m.recommended === 'comprehensive' || a.id === 'passenger',
-    on: isOn(p, product, a.id, a.verdict, m.recommended === 'comprehensive' || a.id === 'passenger'),
-  }))
+  const h = computeHealth(healthInputOf(p))
+  return healthAddonRows(p).map((r) => {
+    let cost: Range | null = null
+    let costNote: string | undefined
+    let cover: AddonItem['cover']
+    if (r.id === 'stu') { cost = h.topUp.premium; cover = { amount: h.topUp.size, label: 'Super top-up' } }
+    else if (r.id === 'maternity') cost = h.maternityOption.premium
+    else if (r.id === 'room' || r.id === 'restore') costNote = 'A feature to look for in the plan, not a separate charge'
+    else costNote = 'The insurer prices this'
+    return { id: r.id, blurb: blurbOf(r.id, r.reason, cover), product, label: r.label, verdict: r.verdict, reason: r.reason, watch: r.watch, cost, costNote, cover, selectable: true, on: isOn(p, product, r.id, r.verdict, true) }
+  })
 }
 
 /* ───────────────────────── Outcome ───────────────────────── */
@@ -113,24 +102,13 @@ export function outcomeFor(product: Product, p: Profile): Outcome {
       base: t.premium, extras, total: addRange(t.premium, extras), unpriced, picked,
     }
   }
-  if (product === 'health') {
-    const h = computeHealth(healthInputOf(p))
-    const stu = items.find((i) => i.id === 'stu')
-    const extras = addRange(ZERO, ...priced.map((i) => i.cost!))
-    const held = p.covered.includes('ownHealth') && p.ownCover >= 3_00_000 ? p.ownCover : h.base
-    const lines: Outcome['lines'] = [{ label: h.basePlans.parents || stu ? 'You and your family' : 'Your cover', value: inr(held + (stu?.cover?.amount ?? 0)) }]
-    if (h.basePlans.parents) lines.push({ label: h.basePlans.parents.count === 1 ? 'Your parent' : 'Each parent', value: inr(h.basePlans.parents.each) })
-    return { lines, base: h.basePlans.buyPremium, extras, total: addRange(h.basePlans.buyPremium, extras), unpriced, picked }
-  }
-  const m = computeMotor(motorInputOf(p))
-  // Already holding the right policy: nothing to buy, so nothing to price.
-  if (motorStanding(p).kind === 'sorted') return { lines: [{ label: 'Insured value', value: inr(m.idv) }, { label: 'Your policy', value: p.motorPolicy === 'comprehensive' ? 'Comprehensive' : 'Third-party only' }], base: ZERO, extras: ZERO, total: ZERO, unpriced: [], picked: [] }
-  const base = m.recommended === 'comprehensive' ? m.premium.comprehensive : { low: m.premium.thirdPartyOnly.mid, mid: m.premium.thirdPartyOnly.mid, high: m.premium.thirdPartyOnly.mid }
-  const extras: Range = m.recommended === 'comprehensive' ? addRange(ZERO, ...priced.map((i) => i.cost!)) : ZERO
-  return {
-    lines: [{ label: 'Insured value', value: inr(m.idv) }, { label: 'Cover', value: m.recommended === 'comprehensive' ? 'Comprehensive' : 'Third-party only' }],
-    base, extras, total: addRange(base, extras), unpriced, picked,
-  }
+  const h = computeHealth(healthInputOf(p))
+  const stu = items.find((i) => i.id === 'stu')
+  const extras = addRange(ZERO, ...priced.map((i) => i.cost!))
+  const held = p.covered.includes('ownHealth') && p.ownCover >= 3_00_000 ? p.ownCover : h.base
+  const lines: Outcome['lines'] = [{ label: h.basePlans.parents || stu ? 'You and your family' : 'Your cover', value: inr(held + (stu?.cover?.amount ?? 0)) }]
+  if (h.basePlans.parents) lines.push({ label: h.basePlans.parents.count === 1 ? 'Your parent' : 'Each parent', value: inr(h.basePlans.parents.each) })
+  return { lines, base: h.basePlans.buyPremium, extras, total: addRange(h.basePlans.buyPremium, extras), unpriced, picked }
 }
 
 export const rangeText = (r: Range) => (r.low === r.high ? inrFull(r.low) : `${inrFull(r.low)} to ${inrFull(r.high)}`)
@@ -162,6 +140,6 @@ const blurbOf = (id: string, reason: string, cover?: { amount: number; label: st
 
 /**
  * True when we are not suggesting anything to buy for this product: no term cover needed, a clean base plan already held with no
- * super top-up or parents' plans to arrange, or the right vehicle policy already in place. There is then no add-on or insurer step.
+ * super top-up or parents' plans to arrange, in place. There is then no add-on or insurer step.
  */
 export const nothingToBuy = (product: Product, p: Profile): boolean => outcomeFor(product, p).total.high === 0

@@ -2,7 +2,7 @@ import { CONCEPTS, type Concept } from './knowledge'
 import { EXTRA_Q } from './knowledgeBoost'
 
 /**
- * The FAQ. Every question people ask about term, health and motor insurance, grouped so nothing is hard to find.
+ * The FAQ. Every question people ask about term and health insurance, grouped so nothing is hard to find.
  * Answers come from the same knowledge base as before; the questions below are written as a person would ask them.
  */
 export interface FaqItem {
@@ -13,7 +13,7 @@ export interface FaqItem {
   go?: { label: string; to: string }[]
   related: string[]
   /** The product flow this question belongs to, so the answer can send the customer straight into it. */
-  product: 'term' | 'health' | 'motor' | null
+  product: 'term' | 'health' | null
   /** Lower-case text the search looks through: aliases and the answer itself. */
   haystack: string
 }
@@ -23,7 +23,7 @@ export interface FaqCategory {
   title: string
   blurb: string
   /** A category about one product offers a way straight into that product's flow. */
-  product: 'term' | 'health' | 'motor' | null
+  product: 'term' | 'health' | null
   items: FaqItem[]
 }
 
@@ -36,15 +36,15 @@ const EXTRA: Extra[] = [
   x('g_premium_sum', 'What is the difference between premium and cover (sum insured)?', ['premium vs sum insured', 'what is sum assured', 'what is cover amount', 'what is premium'],
     ['The premium is what you pay, usually every year. The cover (called sum assured in life insurance and sum insured in health) is the most the insurer will pay out. A higher cover costs more, but not in a straight line: doubling the cover costs less than double the premium.']),
   x('g_how_priced', 'How do insurers decide my premium?', ['how is premium calculated', 'why is my premium higher', 'what affects insurance premium', 'what factors decide premium'],
-    ['Each product prices the risk of paying a claim.'], { bullets: ['Term life: your age, gender, tobacco use, cover amount, how long the cover runs, and sometimes health and occupation.', 'Health: the age of the eldest member, who is covered, the cover amount, your city, and any known condition.', 'Motor: the value of the vehicle, its age, engine size, your city and your no-claim bonus. Third-party premium is fixed by the government.', 'Buying younger and healthier locks a lower price, which is why it pays to buy early.'] }),
+    ['Each product prices the risk of paying a claim.'], { bullets: ['Term life: your age, gender, tobacco use, cover amount, how long the cover runs, and sometimes health and occupation.', 'Health: the age of the eldest member, who is covered, the cover amount, your city, and any known condition.', 'Buying younger and healthier locks a lower price, which is why it pays to buy early.'] }),
   x('g_rider', 'What is a rider or an add-on?', ['what is a rider in insurance', 'what is an add on', 'extra cover on top of policy', 'optional benefit'],
-    ['A rider (life and health) or add-on (motor) is an optional extra bolted onto the main policy for a small extra premium. The main policy does the heavy lifting. The extras fix a specific gap, such as critical illness cover on a term plan or zero depreciation on a car policy.', 'Take only the ones your situation calls for. Step 3 of this guide shows which to take, consider or skip.'], { go: [{ label: 'See my add-ons', to: 'addons' }] }),
+    ['A rider is an optional extra bolted onto the main policy for a small extra premium. The main policy does the heavy lifting. The extras fix a specific gap, such as critical illness cover on a term plan or a super top-up on a health plan.', 'Take only the ones your situation calls for. Step 3 of this guide shows which to take, consider or skip.'], { go: [{ label: 'See my add-ons', to: 'addons' }] }),
   x('g_exclusions', 'What is not covered? What are exclusions?', ['what are exclusions', 'what does insurance not cover', 'general exclusions health insurance', 'exclusions in term insurance'],
-    ['Every policy lists what it will not pay for. Read this list before you buy, because most surprises come from here.'], { bullets: ['Term life: self-harm in the first year, and claims where important facts were hidden when the policy was bought.', 'Health: cosmetic treatment, most dental and vision, injuries from hazardous sport or war, and anything inside a waiting period.', 'Motor: wear and tear, driving without a valid licence or while drunk, and damage outside the policy period.'] }),
+    ['Every policy lists what it will not pay for. Read this list before you buy, because most surprises come from here.'], { bullets: ['Term life: self-harm in the first year, and claims where important facts were hidden when the policy was bought.', 'Health: cosmetic treatment, most dental and vision, injuries from hazardous sport or war, and anything inside a waiting period.'] }),
   x('g_read_policy', 'What should I check in a policy before I buy?', ['what to read in policy document', 'policy wording what to check', 'how to read insurance policy', 'what to look for in a health policy'],
-    ['Read the policy wording, not the brochure. Use the 30-day free look to do it properly.'], { bullets: ['Exclusions and waiting periods.', 'For health: room-rent limit, co-pay, disease-wise sub-limits, and what counts as a pre-existing condition.', 'For term: the payout option, riders and what the claim documents are.', 'For motor: the insured value, the deductible, and which add-ons are really included.'], next: ['g_freelook', 'g_exclusions'] }),
+    ['Read the policy wording, not the brochure. Use the 30-day free look to do it properly.'], { bullets: ['Exclusions and waiting periods.', 'For health: room-rent limit, co-pay, disease-wise sub-limits, and what counts as a pre-existing condition.', 'For term: the payout option, riders and what the claim documents are.'], next: ['g_freelook', 'g_exclusions'] }),
   x('g_docs', 'What documents do I need to buy a policy?', ['documents required to buy insurance', 'kyc for insurance', 'what proof do i need for term insurance', 'documents for health insurance'],
-    ['Identity and address proof (Aadhaar or passport and PAN) are needed for all of them. Term insurers usually also ask for income proof, such as recent salary slips or income-tax returns, because they cap cover at a multiple of income. Motor needs the registration certificate and any previous policy. Health may ask for medical details for older applicants.']),
+    ['Identity and address proof (Aadhaar or passport and PAN) are needed for all of them. Term insurers usually also ask for income proof, such as recent salary slips or income-tax returns, because they cap cover at a multiple of income. Health may ask for medical details for older applicants.']),
   x('g_medicals', 'Will I have to take a medical test?', ['do i need a medical test for term insurance', 'medical examination for insurance', 'health checkup before buying insurance', 'tele medical'],
     ['It depends on your age, cover amount and answers. Younger applicants buying a modest cover often get through on a health questionnaire alone. Larger covers and older ages usually need a medical test, paid for by the insurer. Always answer the questionnaire in full: a test does not excuse hiding something.'], { next: ['g_disclose'] }),
   x('g_ped_buy', 'Can I buy insurance if I already have a health condition?', ['can i buy health insurance with diabetes', 'insurance with pre existing condition', 'term insurance with high blood pressure', 'i have a medical condition can i get insured'],
@@ -98,18 +98,9 @@ const EXTRA: Extra[] = [
     ['Health policies are renewable for life. An insurer can refuse only for fraud or misrepresentation, not because you made claims or grew older. Premium can rise with age or when the insurer revises prices, so keep paying on time.']),
   x('h_tenure', 'Should I buy a one-year or a multi-year health policy?', ['2 year health insurance', 'long term health policy discount', 'multi year health plan'],
     ['A multi-year policy gives a discount and protects you from price changes within the period, but locks your money in and does not stop a premium revision at the next term. One-year policies are more flexible. If you choose multi-year, compare the total over the period, not the headline discount.']),
-  // Motor
-  x('m_longterm', 'What is a bundled three- or five-year policy on a new vehicle?', ['new car insurance 3 years', 'new bike insurance 5 years', 'bundled insurance new vehicle'],
-    ['A new car is sold with three years of third-party cover and a new two-wheeler with five, built into the price. Own-damage cover is separate and can be annual, so shop for it each year. Check that the dealer’s add-ons are priced fairly.']),
-  x('m_licence', 'Will a claim be paid if I had no licence or was drunk?', ['driving without license accident claim', 'drunk driving insurance claim', 'expired licence claim rejected'],
-    ['Usually not for your own damage. Insurers can refuse an own-damage claim when the driver had no valid licence or was over the alcohol limit. Third-party victims are still paid, and the insurer may recover the amount from you.']),
-  x('m_switch', 'Can I switch motor insurer and keep my no-claim bonus?', ['change car insurance company keep ncb', 'transfer ncb to new insurer', 'ncb new vehicle'],
-    ['Yes. The no-claim bonus belongs to you, not the insurer. Ask your old insurer for an NCB certificate and give it to the new one, within about 90 days of expiry. You can also move it to a new vehicle you buy.'], { next: ['m_ncb'] }),
-  x('m_wear', 'Are tyres, batteries and glass covered?', ['tyre cover car insurance', 'battery damage claim', 'windshield claim car insurance'],
-    ['Wear is never covered. Damage in an accident usually is, with some limits on tyres and batteries unless you buy a specific protect add-on. Glass is often paid in full on a comprehensive policy or with a glass add-on. Check which applies on your policy.'], { next: ['m_zerodep'] }),
   // Claims and paperwork
   x('c_time', 'How long does a claim take to settle?', ['how many days to settle claim', 'claim settlement time', 'insurer delay in paying claim'],
-    ['Insurers must settle within about 30 days of getting the last needed document, and owe interest on late payment. Cashless health claims are approved within hours. Motor and reimbursement claims take longer, so submit complete papers the first time. Step 4 shows each insurer’s 30-day record.'], { go: [{ label: 'See settlement records', to: 'shortlist' }], next: ['d_30'] }),
+    ['Insurers must settle within about 30 days of getting the last needed document, and owe interest on late payment. Cashless health claims are approved within hours. Reimbursement claims take longer, so submit complete papers the first time. Step 4 shows each insurer’s 30-day record.'], { go: [{ label: 'See settlement records', to: 'shortlist' }], next: ['d_30'] }),
   x('c_docs_health', 'What documents do I need for a health claim?', ['health claim documents', 'documents for reimbursement', 'what to submit for hospital claim'],
     ['Usually the claim form, your policy and ID, the discharge summary, all bills and receipts, the doctor’s prescription and reports, and the cancelled cheque or bank details. For cashless, the hospital’s desk sends most of this. Keep copies of everything.'], { next: ['h_cashless'] }),
   x('b_change', 'How do I change my address, nominee or contact details?', ['update nominee insurance', 'change address on policy', 'update mobile number policy'],
@@ -196,30 +187,6 @@ const TITLES: Record<string, string> = {
   h_young: 'Should young people buy health insurance?',
   h_ayush: 'Does health insurance cover Ayurveda and AYUSH?',
   h_daycare: 'Are day-care procedures covered?',
-  m_tp: 'Third-party or comprehensive?',
-  m_idv: 'What is IDV?',
-  m_zerodep: 'What is zero depreciation?',
-  m_engine: 'What is engine protect?',
-  m_rti: 'What is return to invoice?',
-  m_ncb: 'What is no-claim bonus in motor insurance?',
-  m_ncbprotect: 'What is NCB protect?',
-  m_small_claim: 'Should I claim for a small dent?',
-  m_vd: 'What is a voluntary deductible?',
-  m_rsa: 'Is roadside assistance worth it?',
-  m_passenger: 'Do I need passenger cover?',
-  m_owner_pa: 'What is owner-driver personal accident cover?',
-  m_tp_rates: 'What is the third-party premium for a car?',
-  m_penalty: 'What is the penalty for driving without insurance?',
-  m_totalloss: 'What counts as a total loss?',
-  m_flood: 'My car was flooded. Is it covered?',
-  m_claim: 'How do I file a motor claim?',
-  m_lapse: 'My motor insurance expired. What now?',
-  m_od_only: 'What is an own-damage-only policy?',
-  m_second_hand: 'How do I transfer insurance when I buy a used vehicle?',
-  m_theft: 'My vehicle was stolen. How does the claim work?',
-  m_cashless_garage: 'How many cashless garages should an insurer have?',
-  m_gst: 'Is there GST on motor insurance?',
-  m_ev: 'How is an electric vehicle insured?',
   d_csr: 'What is claim settlement ratio?',
   d_asr: 'What is amount settlement ratio?',
   d_30: 'What is the 30-day settlement figure?',
@@ -234,36 +201,34 @@ const TITLES: Record<string, string> = {
   s_guarantee: 'Will my claim definitely be paid?',
 }
 
-const CATEGORIES: { id: string; title: string; blurb: string; product?: 'term' | 'health' | 'motor'; ids: string[] }[] = [
+const CATEGORIES: { id: string; title: string; blurb: string; product?: 'term' | 'health'; ids: string[] }[] = [
   { id: 'basics', title: 'Insurance basics', blurb: 'What it is, what comes first, and how prices work.',
     ids: ['g_what', 'g_order', 'g_premium_sum', 'g_how_priced', 'g_rider', 'g_exclusions', 'g_not_investment', 'g_multiple', 'g_child_cover', 'g_inflation', 'g_insurer_fail', 'g_bimasugam'] },
   { id: 'term', title: 'Term life', blurb: 'Cover for your family if you are not around.', product: 'term',
     ids: ['t_what', 't_enough', 't_multiple', 'u_term_formula', 'u_goals', 't_buy_early', 't_age', 't_option', 't_survive', 't_vs_endowment', 't_rop', 't_limited', 't_smoker', 't_women', 't_homemaker', 't_dual', 'g_joint', 't_nri', 't_group', 't_raise', 't_ci_rider', 't_wop', 't_adb', 't_income_benefit', 't_break', 't_year1', 't_annual', 't_loan_cover', 't_hlv', 't_s45', 't_suicide', 't_saral'] },
   { id: 'health', title: 'Health', blurb: 'Hospital bills, plans, waiting periods and what to read.', product: 'health',
     ids: ['h_what', 'h_stack', 'u_health_formula', 'h_super', 'h_topup_vs_super', 'h_deductible', 'h_floater', 'h_employer', 'h_young', 'h_parents', 'h_senior', 'h_maternity', 'h_newborn', 'h_roomrent', 'h_copay', 'h_sublimit', 'h_ped', 'h_moratorium', 'h_waits', 'h_restore', 'h_ncb', 'h_consumables', 'h_pre_post', 'h_daycare', 'h_ayush', 'h_mental', 'h_renewal', 'h_tenure', 'h_premium_rise', 'h_port', 'h_cashless', 'h_tpa', 'h_opd', 'h_ci', 'h_pa', 'h_cash'] },
-  { id: 'motor', title: 'Motor', blurb: 'Cars and two-wheelers: the legal minimum and the extras.', product: 'motor',
-    ids: ['m_tp', 'm_idv', 'm_zerodep', 'm_engine', 'm_rti', 'm_ncb', 'm_ncbprotect', 'm_switch', 'm_small_claim', 'm_vd', 'm_rsa', 'm_passenger', 'm_owner_pa', 'm_wear', 'm_tp_rates', 'm_longterm', 'm_penalty', 'm_od_only', 'm_second_hand', 'm_ev', 'm_licence', 'm_totalloss', 'm_flood', 'm_theft', 'm_claim', 'm_lapse', 'm_cashless_garage', 'm_gst'] },
   { id: 'claims', title: 'Claims and complaints', blurb: 'What to do when you need the insurer to pay.',
-    ids: ['c_time', 'g_claim_rejected', 'h_cashless', 'c_docs_health', 't_claim', 'm_claim', 'g_ombudsman', 's_guarantee'] },
+    ids: ['c_time', 'g_claim_rejected', 'h_cashless', 'c_docs_health', 't_claim', 'g_ombudsman', 's_guarantee'] },
   { id: 'paperwork', title: 'Buying and paperwork', blurb: 'Forms, documents and keeping a policy alive.',
     ids: ['g_docs', 'g_medicals', 'g_ped_buy', 'g_disclose', 'g_read_policy', 'g_freelook', 'g_online_agent', 'g_nominee', 'b_change', 'g_lapse', 'b_cancel', 's_hide', 's_inflate'] },
-  { id: 'tax', title: 'Tax and GST', blurb: 'What is taxed and what is deductible.', ids: ['g_gst', 'g_tax', 'm_gst'] },
+  { id: 'tax', title: 'Tax and GST', blurb: 'What is taxed and what is deductible.', ids: ['g_gst', 'g_tax'] },
   { id: 'insurers', title: 'Comparing insurers', blurb: 'The measures behind the insurer shortlist in step 4.',
-    ids: ['d_no_best', 'd_funnel', 'd_csr', 'd_asr', 'd_30', 'd_complaints', 'd_solvency', 'd_persistency', 'h_icr', 'h_network', 'm_cashless_garage', 'd_sources'] },
+    ids: ['d_no_best', 'd_funnel', 'd_csr', 'd_asr', 'd_30', 'd_complaints', 'd_solvency', 'd_persistency', 'h_icr', 'h_network', 'd_sources'] },
   { id: 'about', title: 'About this guide', blurb: 'How it works, what the numbers mean and what we do with your data.',
     ids: ['u_how', 'u_suggested', 'u_sorted', 'u_not_moving', 'u_real_quotes', 'u_income_why', 'u_buy_here', 'u_reset', 'x_who', 'g_who_advises', 'g_commission', 'g_privacy'] },
 ]
 
-/** A step of one product goes to that product's own flow: motor, motor/addons, motor/insurers. */
+/** A step of one product goes to that product's own flow: health, health/addons, health/insurers. */
 const toFlow = (to: string) => {
-  const m = /^(amount|addons|shortlist)\/(term|health|motor)$/.exec(to)
+  const m = /^(amount|addons|shortlist)\/(term|health)$/.exec(to)
   return m ? (m[1] === 'amount' ? m[2] : `${m[2]}/${m[1] === 'addons' ? 'addons' : 'insurers'}`) : to
 }
 const fixGo = (go: { label: string; to: string }[] | undefined, id: string) =>
   go?.map((g) => (g.to === 'ask?q=my+claim+was+rejected' ? { ...g, to: 'faq?open=g_claim_rejected' } : g.to === 'ask?q=reset' ? { label: g.label, to: '@reset' } : { ...g, to: toFlow(g.to) }))
     .filter((g) => !(id === 'g_claim_rejected' && g.to === 'faq?open=g_claim_rejected'))
 
-const productOf = (id: string): FaqItem['product'] => (id.startsWith('t_') ? 'term' : id.startsWith('h_') ? 'health' : id.startsWith('m_') ? 'motor' : null)
+const productOf = (id: string): FaqItem['product'] => (id.startsWith('t_') ? 'term' : id.startsWith('h_') ? 'health' : null)
 
 function build(): Map<string, FaqItem> {
   const m = new Map<string, FaqItem>()

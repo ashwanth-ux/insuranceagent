@@ -1,7 +1,5 @@
 import dittoHealthRaw from '../data/ditto-health.json'
 import dittoTermRaw from '../data/ditto-term.json'
-import gicRaw from '../data/gic.json'
-import { paidWithin3Months } from './handbook'
 import { insurerBySlug, insurers, value as kbValue } from './kb'
 import type { Product } from './shortlist'
 
@@ -11,13 +9,10 @@ interface DittoMetric { avgWindow: string | null; rows: Record<string, DittoRow>
 interface Ditto { source: string; metrics: Record<string, DittoMetric> }
 const TERM = dittoTermRaw as unknown as Ditto
 const HEALTH = dittoHealthRaw as unknown as Ditto
-interface GicRow { name: string; section: string | null; motor: Record<string, number | null>; motorPrev: Record<string, number | null>; healthSplit?: Record<string, number | null>; motorShare: number | null }
-const GIC = gicRaw as unknown as { source: string; period: string; insurers: Record<string, GicRow> }
 
 export const FUNNEL_SOURCES = {
   term: [TERM.source, 'IRDAI Handbook on Indian Insurance Statistics 2024-25: Table 18 (30-day settlement), Table 10 (policies in force), Table 37 (grievances).'],
   health: [HEALTH.source, 'IRDAI Handbook 2024-25: Table 49 (solvency), Table 53 (claims paid within 3 months).'],
-  motor: [GIC.source, 'IRDAI Handbook 2024-25: Table 49 (solvency), Table 53 (status and age of claims, general and health insurers).'],
 } as const
 
 /* ───────────────────────── Types ───────────────────────── */
@@ -250,59 +245,9 @@ export function healthFunnel(): Funnel {
   ])
 }
 
-/* ───────────────────────── MOTOR ───────────────────────── */
-export const MOTOR_BARS = {
-  motorPremiumMinCr: 2500,
-  /** A lenient floor, not a ranking: whole-company claims paid within three months, three-year average. */
-  timely3mMin: 90,
-  solvencyMin: 1.5,
-} as const
-
-export function motorFunnel(): Funnel {
-  const universe = Object.entries(GIC.insurers)
-    .filter(([, r]) => r.section === 'General Insurers' && (r.motor.motorTotal ?? 0) > 0)
-    .map(([s]) => s)
-  const steps: FunnelStep[] = [
-    {
-      id: 'scale', kind: 'gate', title: 'A real motor book', rule: `Motor premium of ₹${MOTOR_BARS.motorPremiumMinCr.toLocaleString('en-IN')} crore or more in FY2025-26.`,
-      basis: 'A large motor book means claims systems, garage networks and surveyors at scale.', source: GIC.source,
-      test: (s) => {
-        const v = GIC.insurers[s]?.motor.motorTotal ?? null
-        if (v === null) return { pass: false, value: null, display: '—', reason: 'No motor premium reported' }
-        return { pass: v >= MOTOR_BARS.motorPremiumMinCr, value: v, display: `₹${Math.round(v).toLocaleString('en-IN')} cr`, reason: v >= MOTOR_BARS.motorPremiumMinCr ? undefined : `Motor premium ₹${Math.round(v).toLocaleString('en-IN')} crore, below ₹${MOTOR_BARS.motorPremiumMinCr.toLocaleString('en-IN')} crore` }
-      },
-    },
-    {
-      id: 'timely', kind: 'filter', title: 'Pays on time', rule: `At least ${MOTOR_BARS.timely3mMin}% of claims paid within three months, three-year average.`,
-      basis: 'IRDAI publishes how long insurers take to pay, across all their lines of business. It cannot isolate motor, so this is a lenient floor that catches only the slowest payers, not a ranking.', source: 'IRDAI Handbook 2024-25, Table 53',
-      test: (s) => {
-        const v = paidWithin3Months(s)
-        if (v === null) return { pass: false, value: null, display: '—', reason: 'No claim-ageing figure reported by IRDAI' }
-        return { pass: v >= MOTOR_BARS.timely3mMin, value: v, display: `${v.toFixed(1)}%`, reason: v >= MOTOR_BARS.timely3mMin ? undefined : `Paid ${v.toFixed(1)}% of claims within three months, below ${MOTOR_BARS.timely3mMin}% (all lines, FY2022-25)` }
-      },
-    },
-    {
-      id: 'solvency', kind: 'check', title: 'Can pay today', rule: `Solvency of ${MOTOR_BARS.solvencyMin} or more. IRDAI’s minimum is 1.5.`,
-      basis: 'Motor claims can be sudden and large, including third-party injury claims that run for years.', source: 'IRDAI Handbook 2024-25, Table 49',
-      test: (s) => {
-        const v = kbValue('health', 'solvency_ratio', s)
-        if (v === null) return { pass: false, value: null, display: '—', reason: 'No solvency figure' }
-        return { pass: v >= MOTOR_BARS.solvencyMin, value: v, display: v.toFixed(2), reason: v >= MOTOR_BARS.solvencyMin ? undefined : `Solvency ${v.toFixed(2)}, below IRDAI’s 1.5 minimum` }
-      },
-    },
-  ]
-  return run('motor', 'General insurers selling motor', universe, steps, 'Premium FY2025-26, solvency FY2024-25', FUNNEL_SOURCES.motor,
-    ['Insurer-wise motor claim settlement and complaint data are not published in the IRDAI tables we hold. IRDAI does not publish a motor-only, company-wise ranking.'],
-    [
-      'This funnel can only judge scale and financial strength. It cannot yet judge how an insurer treats motor claims.',
-      'Aggregator motor claim ratios disagree with each other (the same insurer is quoted anywhere from 87% to 99%), so we do not use them.',
-      'Before you buy, count cashless garages near your home and office, and read the add-on terms.',
-    ])
-}
-
 /* ───────────────────────── Runner ───────────────────────── */
 function run(product: Product, title: string, universe: string[], steps: FunnelStep[], vintage: string, sources: readonly string[], pending: string[], caveats: string[]): Funnel {
-  const name = (s: string) => (product === 'motor' ? insurerBySlug('health', s)?.name ?? GIC.insurers[s]?.name ?? s : nm(s, product))
+  const name = (s: string) => nm(s, product)
   const table: Candidate[] = universe.map((s) => ({ slug: s, name: name(s), outcomes: {} }))
   const byslug = new Map(table.map((c) => [c.slug, c]))
   let alive = [...universe]
@@ -325,7 +270,7 @@ function run(product: Product, title: string, universe: string[], steps: FunnelS
   return { product, title, universe: universe.length, steps: results, survivors: alive.map((s) => byslug.get(s)!), table, vintage, sources, pending, caveats }
 }
 
-export const funnelFor = (product: Product): Funnel => (product === 'term' ? termFunnel() : product === 'health' ? healthFunnel() : motorFunnel())
+export const funnelFor = (product: Product): Funnel => (product === 'term' ? termFunnel() : healthFunnel())
 
 /** Leaders on a single metric among funnel survivors, so the user can see who is best at what without a combined score. */
 export function leadersAmongSurvivors(f: Funnel, stepId: string, direction: 'higher' | 'lower', n = 3) {

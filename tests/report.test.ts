@@ -6,26 +6,21 @@ import { sanitize, type Profile } from '../src/state/profile'
 
 const P = (o: Partial<Profile>) => sanitize({ age: 32, income: 24 * LAKH, dependents: ['spouse', 'children'], kids: 1, spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', ...o })
 const FAMILY = P({})
-const WITH_CAR = P({ owns: ['car'], vehicleKind: 'car', vehicleAge: '1to2', vehicleValue: 12 * LAKH })
 
 describe('which products the report covers', () => {
   it('a single-product journey reports on that product alone', () => {
-    for (const x of ['term', 'health', 'motor'] as const) expect(reportProducts(true, x, WITH_CAR)).toEqual([x])
+    for (const x of ['term', 'health'] as const) expect(reportProducts(true, x)).toEqual([x])
   })
-  it('the full guide reports on life and health, and on motor only when there is a vehicle', () => {
-    expect(reportProducts(false, 'term', FAMILY)).toEqual(['term', 'health'])
-    expect(reportProducts(false, 'term', WITH_CAR)).toEqual(['term', 'health', 'motor'])
-    expect(reportProducts(false, 'health', P({ owns: ['bike'], vehicleKind: 'bike' }))).toEqual(['term', 'health', 'motor'])
-  })
-  it('the order is always life, health, motor, wherever the person finished', () => {
-    expect(reportProducts(false, 'motor', WITH_CAR)).toEqual(['term', 'health', 'motor'])
+  it('the full guide reports on life and then health, wherever the person finished', () => {
+    expect(reportProducts(false, 'term')).toEqual(['term', 'health'])
+    expect(reportProducts(false, 'health')).toEqual(['term', 'health'])
   })
 })
 
 describe('a section of the report', () => {
-  for (const product of ['term', 'health', 'motor'] as const) {
+  for (const product of ['term', 'health'] as const) {
     it(`${product}: lists exactly the insurers that cleared the bar, insurer first`, () => {
-      const s = sectionFor(product, WITH_CAR)
+      const s = sectionFor(product, FAMILY)
       const f = funnelFor(product)
       expect(s.nothing).toBe(false)
       expect(s.cleared).toBe(f.survivors.length)
@@ -41,7 +36,7 @@ describe('a section of the report', () => {
       for (const x of f.survivors) expect(slugs.has(x.slug), x.slug).toBe(true)
     })
     it(`${product}: says what the suggestion is built on, and what happens next`, () => {
-      const s = sectionFor(product, WITH_CAR)
+      const s = sectionFor(product, FAMILY)
       expect(s.basis.length).toBeGreaterThan(0)
       expect(s.lines.length).toBeGreaterThan(0)
       expect(s.tests.length).toBeGreaterThanOrEqual(2)

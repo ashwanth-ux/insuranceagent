@@ -11,8 +11,6 @@ export const SOURCES = {
   pranay: { id: 'pranay', label: 'Pranay Kapoor, The only term insurance guide you need in 2026', conf: 'medium' as Confidence, note: 'Independent creator with an affiliate link to Ditto. Quotes for a 35-year-old male non-smoker. Headline says ₹3 crore, footnote and ICICI note say ₹5 crore. Our model reproduces SBI’s ₹32.8k at ₹5 crore, so we read it as ₹5 crore.' },
   dittoHealth: { id: 'dittoHealth', label: 'Ditto, Compare Health Insurance Plans (30 Jun 2026)', conf: 'medium' as Confidence, note: 'Plan features and insurer metrics for five flagship plans.' },
   nyvo: { id: 'nyvo', label: 'nyvo, Health plans with no sub-limits (1 Oct 2026)', conf: 'medium' as Confidence, note: 'From policy wording as recorded in nyvo’s database.' },
-  honestMoney: { id: 'honestMoney', label: 'HonestMoney, Best car insurance companies (30 Apr 2026)', conf: 'low' as Confidence, note: 'Aggregator. Add-on terms and garage counts are approximate and change often.' },
-  policybazaar: { id: 'policybazaar', label: 'Policybazaar, Car insurance claim settlement ratio', conf: 'low' as Confidence, note: 'Commercial aggregator. Garage counts only; its CSRs are rounded and unverified, so we do not use them.' },
 } as const
 
 export type Tri = boolean | null // null = not stated in our sources
@@ -258,54 +256,7 @@ export const HEALTH_PLAN_CHECKLIST = [
   { id: 'check', label: 'Annual health check-up', good: 'From year one, for every member', note: 'Small perk, but it catches things early.' },
 ] as const
 
-/* ───────────────────────── MOTOR ───────────────────────── */
-export interface MotorInsurerTerms {
-  insurer: string
-  garages?: { honestMoney?: number; policybazaar?: number }
-  zeroDepMaxVehicleYears?: number
-  zeroDepClaimsPerYear?: number | 'unlimited'
-  ncbProtectClaimsPerYear?: number
-  keyReplacementMax?: number
-  roadsideAssist?: string
-  claimSpeed?: string
-  note?: string
-}
-
-export const MOTOR_INSURER_TERMS: MotorInsurerTerms[] = [
-  { insurer: 'hdfc-ergo', garages: { honestMoney: 8700, policybazaar: 8200 }, zeroDepMaxVehicleYears: 7, zeroDepClaimsPerYear: 2, ncbProtectClaimsPerYear: 1, keyReplacementMax: 30000, roadsideAssist: 'Included', claimSpeed: 'Cashless typically 2–4 working days' },
-  { insurer: 'sbi-general', garages: { honestMoney: 16000, policybazaar: 16000 }, zeroDepMaxVehicleYears: 5, zeroDepClaimsPerYear: 2, ncbProtectClaimsPerYear: 1, keyReplacementMax: 25000, roadsideAssist: '₹200–500 extra', claimSpeed: 'Average cashless closure about 48 hours (self-reported)' },
-  { insurer: 'icici-lombard', garages: { honestMoney: 7500, policybazaar: 5900 }, zeroDepMaxVehicleYears: 5, zeroDepClaimsPerYear: 'unlimited', ncbProtectClaimsPerYear: 1, keyReplacementMax: 20000, roadsideAssist: 'Included', claimSpeed: 'Cashless typically 2–4 working days', note: 'Unlimited zero-depreciation claims a year, where most cap at two.' },
-  { insurer: 'tata-aig', garages: { honestMoney: 10000, policybazaar: 7500 }, zeroDepMaxVehicleYears: 7, zeroDepClaimsPerYear: 2, ncbProtectClaimsPerYear: 1, keyReplacementMax: 25000, roadsideAssist: '₹300–500 extra', claimSpeed: 'Cashless typically 2–3 working days' },
-  { insurer: 'bajaj-allianz-general', garages: { honestMoney: 7200, policybazaar: 4000 }, zeroDepMaxVehicleYears: 5, zeroDepClaimsPerYear: 2, ncbProtectClaimsPerYear: 1, keyReplacementMax: 20000, roadsideAssist: '₹200–400 extra', claimSpeed: 'Cashless 3–5 working days; reimbursement 15–25 days' },
-  { insurer: 'royal-sundaram', garages: { honestMoney: 5500, policybazaar: 3300 }, claimSpeed: '85% of claims within 24 hours (self-reported, Q1 2026)' },
-  { insurer: 'go-digit-general', garages: { honestMoney: 5000 }, claimSpeed: 'Cashless 2–4 working days' },
-  { insurer: 'acko-general', garages: { honestMoney: 4500 }, claimSpeed: 'Minor claims under ₹25,000 within 24 hours; major claims 5–7 days' },
-  { insurer: 'new-india-assurance', garages: { honestMoney: 9000, policybazaar: 3100 }, claimSpeed: 'Cashless 5–10 working days' },
-  { insurer: 'national-insurance', garages: { honestMoney: 6500, policybazaar: 3100 }, claimSpeed: 'Cashless 5–10 working days' },
-  { insurer: 'united-india', garages: { policybazaar: 3100 } },
-  { insurer: 'oriental-insurance', garages: { policybazaar: 3100 } },
-  { insurer: 'cholamandalam-ms-general', garages: { policybazaar: 8300 } },
-  { insurer: 'reliance-general', garages: { policybazaar: 8200 } },
-  { insurer: 'iffco-tokio', garages: { policybazaar: 4300 } },
-  { insurer: 'shriram-general', garages: { policybazaar: 2000 } },
-  { insurer: 'universal-sompo', garages: { policybazaar: 3500 } },
-  { insurer: 'magma-general', garages: { policybazaar: 4000 } },
-  { insurer: 'future-generali-general', garages: { policybazaar: 3500 } },
-  { insurer: 'liberty-general', garages: { policybazaar: 4500 } },
-  { insurer: 'zurich-kotak-general', garages: { policybazaar: 2327 } },
-  { insurer: 'zuno-general', garages: { policybazaar: 1500 } },
-]
-
-export const MOTOR_CHECKLIST = [
-  { id: 'garages', label: 'Cashless garages near you', how: 'Enter your home and office PIN code on the insurer’s website and count garages within 5 km. A national total means little.' },
-  { id: 'zd', label: 'Zero-depreciation limits', how: 'How old a vehicle it covers, and how many claims a year it pays. Most cap at two.' },
-  { id: 'ncb', label: 'NCB protect', how: 'Usually one claim a year. Confirm it keeps your bonus across all claims you expect.' },
-  { id: 'speed', label: 'Claim speed', how: 'No insurer publishes this officially. Treat any figure as self-reported and read recent reviews.' },
-  { id: 'idv', label: 'IDV', how: 'Quotes with a lower insured value look cheaper and pay less if the car is stolen or written off.' },
-] as const
-
 export const planFor = {
   term: (insurer: string) => TERM_PLANS.filter((p) => p.insurer === insurer),
   health: (insurer: string) => HEALTH_PLANS.filter((p) => p.insurer === insurer),
-  motor: (insurer: string) => MOTOR_INSURER_TERMS.find((m) => m.insurer === insurer),
 }

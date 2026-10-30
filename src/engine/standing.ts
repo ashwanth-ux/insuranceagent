@@ -2,8 +2,7 @@ import { inr, inrFull, roundTo } from './format'
 import { computeHealth, type HealthPlan } from './health'
 import { computeTerm } from './term'
 import type { Profile } from '../state/profile'
-import { computeMotor } from './motor'
-import { healthInputOf, motorInputOf, termInputOf } from '../state/derive'
+import { healthInputOf, termInputOf } from '../state/derive'
 
 /**
  * Where the user stands against what we would recommend. When they are already there, that is the headline:
@@ -24,7 +23,7 @@ export interface Standing {
   /** Hero for 'partly': the amount still to add. */
   addLabel: string
   add: number
-  /** False when there is no amount to measure progress against (motor). */
+  /** False when there is no amount to measure progress against. */
   bar: boolean
 }
 
@@ -65,35 +64,12 @@ export function termStanding(p: Profile): Standing {
     kind: r.standing,
     headline: 'You are already sorted.',
     sub: r.grossNeed > 0
-      ? r.surplus > 0 ? `Your ${inr(existing)} of term cover is ${inr(r.surplus)} above the ${inr(r.grossNeed)} we calculate for your family.` : `Your ${inr(existing)} of term cover matches the ${inr(r.grossNeed)} we calculate for your family.`
+      ? r.surplus > 0 ? `Your ${inr(existing)} of term cover is ${inr(r.surplus)} above the ${inr(r.grossNeed)} we calculate for your family.`
+        : r.gapTooSmall ? `Your ${inr(existing)} of term cover is about ${inr(roundTo(r.need.mid, 1000))} short of the ${inr(r.grossNeed)} we calculate for your family. That is too small for a policy of its own, so there is nothing to add.`
+        : `Your ${inr(existing)} of term cover matches the ${inr(r.grossNeed)} we calculate for your family.`
       : `You hold ${inr(existing)} of term cover. Nobody depends on your income and you owe nothing, so there is nothing to add yet.`,
     have: existing, target: Math.max(r.grossNeed, existing === 0 ? 0 : r.grossNeed), haveLabel: `You hold ${inr(existing)}`, targetLabel: `Need ${inr(r.grossNeed)}`,
     keep, addLabel: 'Extra term cover to add', add: r.recommended, bar: true,
-  }
-}
-
-export function motorStanding(p: Profile): Standing {
-  const r = computeMotor(motorInputOf(p))
-  const has = p.covered.includes('ownMotor')
-  const policy = p.motorPolicy
-  const kind: Standing['kind'] = !has ? 'fresh' : policy === 'comprehensive' || r.recommended === 'thirdPartyOnly' ? 'sorted' : 'partly'
-  const takes = r.addons.filter((a) => a.verdict === 'take').map((a) => a.label.toLowerCase())
-  const keep: string[] = []
-  if (kind === 'sorted') {
-    keep.push(`Check that the insured value on your policy is close to ${inr(r.idv)}. A low value lowers the premium and also what you get if the vehicle is stolen or written off.`)
-    if (policy === 'comprehensive' && takes.length > 0) keep.push(`Check the policy includes ${takes.slice(0, 3).join(', ')}. These are the add-ons your answers point to.`)
-    keep.push('Renew before it expires. After about 90 days a break loses the no-claim bonus.')
-    if (r.ncb >= 35 && p.claimSmallDents) keep.push('Do not claim for small dents. A claim can wipe out a bonus that is worth more than the repair.')
-    if (policy === 'comprehensive' && r.recommended === 'thirdPartyOnly') keep.push(`Your vehicle is old enough and replaceable enough that third-party cover alone would do. Dropping own-damage at renewal would save about ${inrFull(Math.round(r.od.net))} a year, but only if you could absorb the loss yourself.`)
-  }
-  return {
-    kind,
-    headline: 'You are already sorted.',
-    sub: policy === 'comprehensive'
-      ? r.recommended === 'comprehensive' ? 'Your comprehensive policy is the cover we recommend for this vehicle.' : 'Your comprehensive policy is more than the minimum we would suggest for this vehicle.'
-      : 'Third-party cover is what we would suggest for this vehicle, and you have it.',
-    have: 0, target: 0, haveLabel: '', targetLabel: '', keep,
-    addLabel: 'Own-damage cover to add', add: r.idv, bar: false,
   }
 }
 

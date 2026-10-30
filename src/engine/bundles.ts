@@ -1,21 +1,20 @@
 import { healthAddons, termAddons, type AddonRow } from './addons'
 import { LAKH } from './format'
 import { computeHealth } from './health'
-import { computeMotor } from './motor'
 import { computeTerm } from './term'
 import type { Profile } from '../state/profile'
-import { effectiveSpend, healthInputOf, kidsOf, monthlyEmi, motorInputOf, termInputOf } from '../state/derive'
+import { effectiveSpend, healthInputOf, kidsOf, monthlyEmi, termInputOf } from '../state/derive'
 
 /** Everything a user would notice about one product, in one comparable shape. */
 export interface Bundle {
-  /** The headline amount: term cover to buy, total health cover, or motor IDV. */
+  /** The headline amount: term cover to buy, or total health cover. */
   cover: number
   /** Indicative premium in rupees a year (mid), including the add-ons we suggest where we can price them. */
   premium: number
   takes: string[]
   considers: string[]
   flags: string[]
-  /** Free-form headline facts, e.g. recommended motor type. */
+  /** Free-form headline facts, e.g. which base plans apply. */
   tags: string[]
 }
 
@@ -44,10 +43,4 @@ export function healthBundle(p: Profile): Bundle {
   return { cover: h.basePlans.totalCover, premium: h.basePlans.premium.mid, takes: labelsOf(rows, 'take'), considers: labelsOf(rows, 'consider'), flags: h.flags.map((f) => f.text), tags: [`base:${h.base}`, `trim:${h.trimmed}`, `topup:${h.topUp.recommended ? h.topUp.size : 0}`] }
 }
 
-export function motorBundle(p: Profile): Bundle {
-  const m = computeMotor(motorInputOf(p))
-  const base = m.recommended === 'comprehensive' ? m.premium.comprehensive.mid : m.premium.thirdPartyOnly.mid
-  return { cover: m.idv, premium: base, takes: labelsOf(m.addons, 'take'), considers: labelsOf(m.addons, 'consider'), flags: m.flags.map((f) => f.text), tags: [m.recommended] }
-}
-
-export const bundleFor = (product: 'term' | 'health' | 'motor', p: Profile): Bundle => (product === 'term' ? termBundle(p) : product === 'health' ? healthBundle(p) : motorBundle(p))
+export const bundleFor = (product: 'term' | 'health', p: Profile): Bundle => (product === 'term' ? termBundle(p) : healthBundle(p))

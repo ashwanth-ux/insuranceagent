@@ -29,8 +29,6 @@ export const LIMITS = {
   employerHealth: { min: 0, max: 5 * CRORE, step: 100_000, default: 0, why: 'Cover your employer provides.' },
   ownHealth: { min: 0, max: 5 * CRORE, step: 100_000, default: 0, why: 'Cover you pay for yourself.' },
   savingsForBill: { min: 0, max: 5 * CRORE, step: 100_000, default: 5 * LAKH, why: 'A hospital bill you could pay from savings.' },
-  vehicleValue: { min: 10_000, max: 5 * CRORE, step: 5_000, default: 600_000, why: 'Current market value of the vehicle.' },
-  ncb: { min: 0, max: 50, step: 5, default: 0, why: 'No-claim bonus is 0, 20, 25, 35, 45 or 50 percent.' },
   goalCost: { min: 50_000, max: 10 * CRORE, step: 50_000, default: 10 * LAKH, why: 'What the goal costs in today’s money, between ₹50,000 and ₹10 crore.' },
   goalYears: { min: 0, max: 40, step: 1, default: 5, why: 'Years until you need the money, 0 to 40.' },
   parentSupport: { min: 0, max: 5 * LAKH, step: 1_000, default: 15_000, why: 'What you send or spend on your parents each month, between ₹0 and ₹5 lakh.' },

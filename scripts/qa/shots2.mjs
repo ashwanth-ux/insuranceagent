@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs'
 mkdirSync(OUT, { recursive: true })
 const { server, port } = await serve(new URL('../../dist', import.meta.url).pathname)
 const base = `http://127.0.0.1:${port}/`
-const family = { age: 32, gender: 'male', dependents: ['spouse', 'children', 'parents'], spouseEarns: false, kids: 2, youngestChildAge: 4, parents: 2, parentAge: 62, income: 2400000, owns: ['homeLoan', 'car'], vehicleValue: 1200000, vehicleAge: '1to2', ncb: 35, floodProne: true, touched: { age: true } }
+const family = { age: 32, gender: 'male', dependents: ['spouse', 'children', 'parents'], spouseEarns: false, kids: 2, youngestChildAge: 4, parents: 2, parentAge: 62, income: 2400000, owns: ['homeLoan'], vehicleValue: 1200000, vehicleAge: '1to2', ncb: 35, floodProne: true, touched: { age: true } }
 const VIEWS = { m: [390, 844, true], t: [820, 1180, false], d: [1440, 900, false] }
 const want = process.argv.filter((a) => /^[mtd]$/.test(a))
 const routes = process.argv.filter((a) => a.startsWith('#/')).map((a) => a.slice(2))
@@ -14,7 +14,7 @@ for (const tag of want.length ? want : Object.keys(VIEWS)) {
   const b = await launch({ width: w, height: h, mobile: m })
   await b.goto(base)
   await b.eval(`localStorage.setItem('kyfr-insurance-agent.v1', ${JSON.stringify(JSON.stringify(family))})`)
-  for (const r of routes.length ? routes : ['', 'need', 'health', 'health/addons', 'term', 'term/addons', 'motor', 'motor/addons', 'health/insurers', 'faq']) {
+  for (const r of routes.length ? routes : ['', 'need', 'health', 'health/addons', 'term', 'term/addons', 'health/insurers', 'faq']) {
     await b.goto(base + '#/' + r); await b.eval('location.reload()'); await b.wait(900)
     const name = `${tag}-${r.replace(/[/?=&]/g, '-') || 'home'}`
     await b.shot(OUT + name + '.png')

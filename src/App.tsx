@@ -22,7 +22,7 @@ const TITLES: Record<string, string> = {
   done: 'All set · Kyfr Insurance Guide',
   faq: 'FAQ · Kyfr Insurance Guide',
 }
-const PRODUCTS: readonly string[] = ['term', 'health', 'motor']
+const PRODUCTS: readonly string[] = ['term', 'health']
 const isProduct = (s: string | undefined): s is Product => !!s && PRODUCTS.includes(s)
 
 function Shell() {

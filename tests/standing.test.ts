@@ -62,9 +62,3 @@ describe('credit for what you already hold: term', () => {
   })
 })
 
-describe('motor credits', () => {
-  it('a built-up no-claim bonus is credited', () => {
-    const i = impactsFor('motor', P({ owns: ['car'], vehicleKind: 'car', vehicleAge: '1to2', vehicleValue: 12 * LAKH, ncb: 50 })).find((x) => x.id === 'ncb')!
-    expect(i.win).toBe(true)
-  })
-})

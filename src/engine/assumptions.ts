@@ -1,6 +1,5 @@
 import { inr, inrFull } from './format'
 import { hospitalLabel } from './health'
-import { ageLabel, ccLabel } from './motor'
 import { computeTerm } from './term'
 import { effectiveLoans, effectiveParentSupport, effectiveSpend, hasLoanFlag, kidsOf, termInputOf } from '../state/derive'
 import type { Product, Profile } from '../state/profile'
@@ -40,13 +39,6 @@ export function assumptionsFor(product: Product, p: Profile): Assumption[] {
     if (p.dependents.includes('parents')) add('Parents', `${p.parents === 1 ? 'One' : 'Both'}, age ${p.parentAge}`, sug('parentAge'))
     add('Health plan you hold', p.covered.includes('ownHealth') && p.ownCover > 0 ? inr(p.ownCover) : 'None yet', false)
     add('A bill you could pay yourself', inr(p.savingsForBill), sug('savingsForBill'))
-  } else {
-    add('Vehicle', `${p.vehicleKind === 'car' ? 'Car' : 'Two-wheeler'}, ${p.vehicleKind === 'car' ? ccLabel.car[p.carCc] : ccLabel.bike[p.bikeCc]}`, sug('vehicleKind') && sug(p.vehicleKind === 'car' ? 'carCc' : 'bikeCc'))
-    add('Age', ageLabel[p.vehicleAge], sug('vehicleAge'))
-    add('Worth', inr(p.vehicleValue), sug('vehicleValue'))
-    add('On a loan', p.owns.includes('vehicleLoan') ? 'Yes' : 'No', sug('owns'))
-    add('No-claim bonus', p.ncb > 0 ? `${p.ncb}%` : 'None yet', sug('ncb'))
-    add('Policy you hold', p.covered.includes('ownMotor') ? (p.motorPolicy === 'comprehensive' ? 'Comprehensive' : 'Third-party only') : 'None', false)
   }
   return out
 }

@@ -38,7 +38,7 @@ describe('shortlist guardrails', () => {
     expect(s.belowMinimum.length).toBeGreaterThan(0)
   })
   it('every section returns at most 3 leaders and never NaN', () => {
-    for (const p of ['term', 'health', 'motor'] as const)
+    for (const p of ['term', 'health'] as const)
       for (const s of sectionsFor(p)) {
         expect(s.leaders.length).toBeLessThanOrEqual(3)
         s.eligible.forEach((l) => { expect(Number.isFinite(l.value)).toBe(true); expect(l.display).not.toMatch(/NaN|undefined/) })

@@ -1,8 +1,8 @@
 import type { Gender } from './types'
 
 export type Dependent = 'spouse' | 'children' | 'parents'
-export type Owns = 'homeLoan' | 'vehicleLoan' | 'otherLoan' | 'car' | 'bike'
-export type Covered = 'ownHealth' | 'employerHealth' | 'ownTerm' | 'employerLife' | 'savingsPlan' | 'ownMotor'
+export type Owns = 'homeLoan' | 'vehicleLoan' | 'otherLoan'
+export type Covered = 'ownHealth' | 'employerHealth' | 'ownTerm' | 'employerLife' | 'savingsPlan'
 
 export interface NeedsInput {
   age: number
@@ -18,7 +18,7 @@ export interface NeedsInput {
   noIncome?: boolean
 }
 
-export type NeedId = 'health' | 'term' | 'topup' | 'parents' | 'motor' | 'ci'
+export type NeedId = 'health' | 'term' | 'topup' | 'parents' | 'ci'
 export type NeedStatus = 'now' | 'have' | 'later' | 'notYet'
 
 export interface Need {
@@ -28,7 +28,7 @@ export interface Need {
   /** One line, in the user's own terms. */
   reason: string
   /** Which sizing page this feeds. */
-  product: 'health' | 'term' | 'motor' | null
+  product: 'health' | 'term' | null
   order: number
 }
 
@@ -71,7 +71,6 @@ export function computeNeeds(i: NeedsInput): NeedsResult {
   const hasLoan = o.has('homeLoan') || o.has('vehicleLoan') || o.has('otherLoan')
   const depends = d.size > 0
   const termRelevant = depends || hasLoan || !!i.hasGoals
-  const vehicle = o.has('car') || o.has('bike')
   const needs: Need[] = []
   const flags: string[] = []
 
@@ -101,10 +100,7 @@ export function computeNeeds(i: NeedsInput): NeedsResult {
   // 4. Parents
   if (d.has('parents')) needs.push({ id: 'parents', title: 'Separate health plans for your parents', status: 'now', product: 'health', order: 4, reason: 'Their claims would drain your family’s shared limit, and their waiting periods start only when you buy.' })
 
-  // 5. Motor
-  if (vehicle) needs.push({ id: 'motor', title: o.has('car') ? 'Car insurance' : 'Two-wheeler insurance', status: c.has('ownMotor') ? 'have' : 'now', product: 'motor', order: 5, reason: c.has('ownMotor') ? 'You have one. Check it is the right type and the insured value is fair.' : 'Third-party cover is the law. Own-damage cover is your choice, and worth it if you could not replace the vehicle from savings.' })
-
-  // 6. CI and PA
+  // 5. CI and PA
   needs.push({ id: 'ci', title: 'Critical illness and personal accident', status: 'later', product: null, order: 6, reason: 'Last in line. They replace income while you recover, which nothing else does. Add them once the cover above is in place.' })
 
   if (c.has('savingsPlan')) flags.push('Endowment, money-back and ULIP plans are savings with a small cover attached. We count only their life cover as protection.')

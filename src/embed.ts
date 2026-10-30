@@ -1,6 +1,6 @@
 /**
  * Embedded mode: the guide is shown inside another app, so it drops its own header, footer and landing chrome.
- * Turn it on with `embed=1` in the address (`?embed=1` or `#/motor?embed=1`). It stays on for the browser session; `embed=0` turns it off.
+ * Turn it on with `embed=1` in the address (`?embed=1` or `#/health?embed=1`). It stays on for the browser session; `embed=0` turns it off.
  */
 const flag = (): boolean | null => {
   try {

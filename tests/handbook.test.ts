@@ -39,7 +39,7 @@ describe('IRDAI Handbook 2024-25 parse is consistent with the other IRDAI table 
     expect(claimsIntimated('new-india-assurance')!).toBeGreaterThan(1e7)
   })
   it('facts for the UI come from the handbook and never print NaN', () => {
-    for (const p of ['term', 'health', 'motor'] as const)
+    for (const p of ['term', 'health'] as const)
       for (const slug of ['hdfc-life', 'axis-max-life', 'star-health', 'icici-lombard', 'niva-bupa']) {
         const s = JSON.stringify(factsFor(p, slug))
         expect(s).not.toMatch(/NaN|undefined|Infinity/)

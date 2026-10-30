@@ -1,13 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Covered, Dependent, Owns } from '../engine/needs'
 import type { HospitalTier } from '../engine/health'
-import { valueBounds, type BikeCc, type CarCc, type VehicleAge, type VehicleKind } from '../engine/motor'
 import { LAKH, clamp } from '../engine/format'
 import { LIMITS } from '../engine/limits'
 import type { Priority } from '../engine/shortlist'
 import type { CityTier, Gender } from '../engine/types'
 
-export type Product = 'term' | 'health' | 'motor'
+export type Product = 'term' | 'health'
 export type Lump = 'yes' | 'no' | 'unsure'
 
 export interface Profile {
@@ -47,22 +46,6 @@ export interface Profile {
   familyHistory: boolean
   babyPlanned: boolean
   savingsForBill: number
-  // Motor
-  vehicleKind: VehicleKind
-  carCc: CarCc
-  bikeCc: BikeCc
-  vehicleAge: VehicleAge
-  vehicleValue: number
-  couldReplace: boolean
-  floodProne: boolean
-  highwayHeavy: boolean
-  streetParking: boolean
-  ncb: number
-  claimSmallDents: boolean
-  carriesPassengers: boolean
-  hasPA15L: boolean
-  /** The kind of motor policy you already hold (only used when 'ownMotor' is ticked). */
-  motorPolicy: 'thirdParty' | 'comprehensive'
   // Add-on extras
   heavyCommute: boolean
   selfEmployed: boolean
@@ -83,7 +66,6 @@ export const DEFAULTS: Profile = {
   age: 30, gender: 'male', smoker: false, dependents: [], income: 12 * LAKH, noIncome: false, owns: [], covered: [],
   spouseEarns: false, kids: 1, youngestChildAge: LIMITS.childAge.default, monthlySpend: null, loans: null, goalEducation: true, goalMarriage: false, goals: [], freeSavings: 0, existingTerm: 0, yearsOverride: null, parentSupportMonthly: null,
   city: 'metro', hospital: 'standard', parents: 2, parentAge: LIMITS.parentAge.default, ownCover: 0, employerCover: 0, knownCondition: false, familyHistory: false, babyPlanned: false, savingsForBill: 5 * LAKH,
-  vehicleKind: 'car', carCc: '1000to1500', bikeCc: '75to150', vehicleAge: '2to3', vehicleValue: 8 * LAKH, couldReplace: true, floodProne: false, highwayHeavy: false, streetParking: false, ncb: 0, claimSmallDents: false, carriesPassengers: false, hasPA15L: false, motorPolicy: 'comprehensive',
   heavyCommute: false, selfEmployed: false, lumpSum: 'yes',
   priority: 'certainty',
   revealed: {},
@@ -113,19 +95,13 @@ export function sanitize(raw: Partial<Profile> | null | undefined): Profile {
   const r = (raw ?? {}) as Record<string, unknown>
   const D = DEFAULTS
   const L = LIMITS
-  const ages: readonly VehicleAge[] = ['lt6m', '6m1y', '1to2', '2to3', '3to4', '4to5', '5plus']
-  const kind = oneOf<VehicleKind>(r.vehicleKind, ['car', 'bike'], D.vehicleKind)
-  const vAge = oneOf<VehicleAge>(r.vehicleAge, ages, D.vehicleAge)
-  const vb = vehicleBounds(kind, vAge)
-  const ncbRaw = num(r.ncb, 0, 50, 0)
-  const ncb = [0, 20, 25, 35, 45, 50].reduce((a, s) => (s <= ncbRaw ? s : a), 0)
   const flags = (src: unknown) => {
     const out: Record<string, boolean> = {}
     if (src && typeof src === 'object') for (const [k, v] of Object.entries(src as Record<string, unknown>)) if (typeof v === 'boolean' && /^[a-z0-9._-]{1,24}$/i.test(k)) out[k] = v
     return out
   }
   // An older profile kept the vehicle-loan flag separately. It now lives with the other loans.
-  const owns = subset<Owns>(r.owns, ['homeLoan', 'vehicleLoan', 'otherLoan', 'car', 'bike'])
+  const owns = subset<Owns>(r.owns, ['homeLoan', 'vehicleLoan', 'otherLoan'])
   if (r.onLoan === true && !owns.includes('vehicleLoan')) owns.push('vehicleLoan')
   const revealed = flags(r.revealed)
   const touched = flags(r.touched)
@@ -138,7 +114,7 @@ export function sanitize(raw: Partial<Profile> | null | undefined): Profile {
     income: num(r.income, L.income.min, L.income.max, D.income),
     noIncome: bool(r.noIncome, D.noIncome),
     owns: owns,
-    covered: subset<Covered>(r.covered, ['ownHealth', 'employerHealth', 'ownTerm', 'employerLife', 'savingsPlan', 'ownMotor']),
+    covered: subset<Covered>(r.covered, ['ownHealth', 'employerHealth', 'ownTerm', 'employerLife', 'savingsPlan']),
     spouseEarns: bool(r.spouseEarns, D.spouseEarns),
     kids: Math.round(num(r.kids, 1, 6, D.kids)),
     youngestChildAge: Math.round(num(r.youngestChildAge, L.childAge.min, L.childAge.max, D.youngestChildAge)),
@@ -161,20 +137,6 @@ export function sanitize(raw: Partial<Profile> | null | undefined): Profile {
     familyHistory: bool(r.familyHistory, D.familyHistory),
     babyPlanned: bool(r.babyPlanned, D.babyPlanned),
     savingsForBill: num(r.savingsForBill, L.savingsForBill.min, L.savingsForBill.max, D.savingsForBill),
-    vehicleKind: kind,
-    carCc: oneOf<CarCc>(r.carCc, ['upto1000', '1000to1500', 'above1500'], D.carCc),
-    bikeCc: oneOf<BikeCc>(r.bikeCc, ['upto75', '75to150', '150to350', 'above350'], D.bikeCc),
-    vehicleAge: vAge,
-    vehicleValue: num(r.vehicleValue, vb.min, vb.max, vb.default),
-    couldReplace: bool(r.couldReplace, D.couldReplace),
-    floodProne: bool(r.floodProne, D.floodProne),
-    highwayHeavy: bool(r.highwayHeavy, D.highwayHeavy),
-    streetParking: bool(r.streetParking, D.streetParking),
-    ncb,
-    claimSmallDents: bool(r.claimSmallDents, D.claimSmallDents),
-    carriesPassengers: bool(r.carriesPassengers, D.carriesPassengers),
-    hasPA15L: bool(r.hasPA15L, D.hasPA15L),
-    motorPolicy: oneOf<Profile['motorPolicy']>(r.motorPolicy, ['thirdParty', 'comprehensive'], D.motorPolicy),
     heavyCommute: bool(r.heavyCommute, D.heavyCommute),
     selfEmployed: bool(r.selfEmployed, D.selfEmployed),
     lumpSum: oneOf<Lump>(r.lumpSum, ['yes', 'no', 'unsure'], D.lumpSum),
@@ -184,8 +146,6 @@ export function sanitize(raw: Partial<Profile> | null | undefined): Profile {
     addons,
   }
 }
-
-export const vehicleBounds = valueBounds
 
 const KEY = 'kyfr-insurance-agent.v1'
 

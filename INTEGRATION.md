@@ -6,18 +6,18 @@ The guide is a static single-page app. Each product is a complete flow on its ow
 
 | Link | What it opens |
 |---|---|
-| `#/term`, `#/health`, `#/motor` | The product's own flow, starting at **cover** |
+| `#/term`, `#/health` | The product's own flow, starting at **cover** |
 | `#/<product>/addons` | Choose add-ons, with the cover and premium that result |
 | `#/<product>/insurers` | Which insurers clear the bar |
 | `#/<product>/done` | The last page: "You're all set", the report for that product, and Save as PDF. The full guide ends at `#/done/<product>` with one report covering every product |
 | `#/faq`, `#/faq?open=<question id>` | The FAQ, or one question opened |
 | `#/` , `#/need` | The full guide (need, then amount, add-ons, insurers) |
 
-Within a product flow every "next" and "back" stays inside that product. A customer who asks about motor stays in motor.
+Within a product flow every "next" and "back" stays inside that product. A customer who asks about health stays in health.
 
 ## Embedded mode
 
-Add `embed=1` (`?embed=1` or `#/motor?embed=1`) to hide the guide's own header and footer. It stays on for the browser session; `embed=0` turns it off. The page is responsive from 320 px up and honours the safe-area insets, so it works in a WebView or an iframe.
+Add `embed=1` (`?embed=1` or `#/health?embed=1`) to hide the guide's own header and footer. It stays on for the browser session; `embed=0` turns it off. The page is responsive from 320 px up and honours the safe-area insets, so it works in a WebView or an iframe.
 
 ## Handing over what you already know
 
@@ -25,7 +25,7 @@ Pass values in the address and the guide starts from them. Each is clamped like 
 
 ```
 #/health?age=34&spouse=1&kids=2&parents=2&parentAge=63&city=metro&hospital=standard
-#/motor?vehicle=car&vehicleValue=900000&vehicleAge=2to3&ncb=35&loans=vehicle
+#/health?age=34&spouse=1&kids=2&city=metro&hospital=standard
 #/term?age=32&gender=female&income=2400000&spouse=1&kids=1&loans=home
 ```
 
@@ -42,8 +42,6 @@ Pass values in the address and the guide starts from them. Each is clamped like 
 | `city` | `metro`, `tier2`, `other` |
 | `hospital` | `top`, `standard`, `local` |
 | `loans` | comma list of `home`, `vehicle`, `other` |
-| `vehicle` | `car`, `bike` |
-| `vehicleValue`, `vehicleAge`, `ncb` | rupees, `lt6m` `6m1y` `1to2` `2to3` `3to4` `4to5` `5plus`, `0` `20` `25` `35` `45` `50` |
 | `ownHealth`, `ownTerm` | cover already held, rupees |
 
 ## Events from the guide to the host
@@ -58,7 +56,10 @@ Delivered to a React Native WebView (`ReactNativeWebView.postMessage`, as JSON),
 { "source": "kyfr-insurance", "type": "done", "product": "health",
   "lines": [{ "label": "You and your family", "value": "₹30 lakh" }],
   "premium": { "low": 114400, "high": 171800 }, "addons": ["Super top-up"] }
+{ "source": "kyfr-insurance", "type": "feedback", "helpful": "yes", "comment": "Clear and short", "journey": "term" }
 ```
+
+`feedback` is sent when the person presses Send on "Was this helpful?" (`helpful` is `yes` or `no`, `journey` is `term`, `health` or `full`, `comment` may be empty). It carries nothing else, so a host app can follow it in its own analytics.
 
 `done` is sent once, when the person reaches the final "You're all set" page. A host app can use it to close the browser or WebView. When there is nothing to buy, `lines` and `addons` are empty and `premium` is `null`.
 

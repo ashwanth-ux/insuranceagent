@@ -1,6 +1,6 @@
 import { entry, fyLabel, insurers, latest, previous, rawValue, value, type Insurer, type KbType } from './kb'
 
-export type Product = 'term' | 'health' | 'motor'
+export type Product = 'term' | 'health'
 export type Priority = 'certainty' | 'strength' | 'service'
 
 export interface Row {
@@ -147,18 +147,6 @@ const healthResolution = (period: string): Row[] =>
     return { insurer, value: v, volume: c, volumeText: `${Math.round(c).toLocaleString('en-IN')} complaints`, eligible: true }
   })
 
-/** Motor: IRDAI motor claim data is not in the knowledge base yet. Only whole-company financial strength is available. */
-const motorSolvency = (period: string): Row[] =>
-  insurers('health').map((insurer) => {
-    const v = value('health', 'solvency_ratio', insurer.slug, period)
-    if (insurer.kind !== 'general' || !insurer.consumer_listed) return { insurer, value: v, eligible: false, reason: 'Not a general insurer' }
-    if (v === null) return { insurer, value: null, eligible: false, reason: 'No solvency ratio reported by IRDAI' }
-    const { ok } = healthScale(insurer, period)
-    if (!ok) return { insurer, value: v, eligible: false, reason: 'Too small to compare. Motor premium data is not loaded yet, so size is judged on health premium' }
-    if (v < FLOORS.solvencyMin) return { insurer, value: v, eligible: false, reason: 'Below IRDAI’s minimum solvency ratio of 1.5' }
-    return { insurer, value: v, volumeText: 'Whole-company figure', eligible: true }
-  })
-
 const watchSolvency = ['A slightly higher number does not automatically make an insurer safer. IRDAI’s minimum is 1.5.', 'It describes the financial cushion. It does not tell you how an insurer handles claims or service.']
 
 export const CRITERIA: CriterionSpec[] = [
@@ -232,23 +220,11 @@ export const CRITERIA: CriterionSpec[] = [
     floorText: `Only insurers with at least ${FLOORS.complaintsForResolution.toLocaleString('en-IN')} complaints in the year.`,
     source: 'IRDAI Handbook 2024-25, Table 56', rows: healthResolution,
   },
-  {
-    id: 'motor.solvency', product: 'motor', type: 'health', group: 'primary', priority: 'strength',
-    title: 'Financial cushion', term: 'Solvency ratio', question: 'Can they pay when it matters?',
-    direction: 'higher', fmt: ratio2, tieEps: 0.05, moveEps: 0.1,
-    plain: (n) => `Held ${n.toFixed(2)}× the margin IRDAI requires.`,
-    why: 'Motor claims can be sudden and large, including third-party injury claims that run for years.',
-    watch: ['Whole-company figure for general insurers.', ...watchSolvency],
-    floorText: `Only general insurers with at least ₹${(FLOORS.healthPremiumLakh / 100).toLocaleString('en-IN')} crore of health premium, as a size marker until motor premium data is loaded, and at or above IRDAI’s minimum of ${FLOORS.solvencyMin}.`,
-    source: 'IRDAI Handbook 2024-25, Table 49', rows: motorSolvency,
-  },
 ]
 
 /** Metrics we want but cannot honestly compute from the data we hold. Shown quietly, never faked. */
 export const PENDING: PendingSpec[] = [
   { id: 'health.asr', product: 'health', title: 'Claim money paid, by amount', term: 'Claim settlement ratio, by amount', needs: 'insurer-wise health claim amounts, which IRDAI publishes only for the whole industry' },
-  { id: 'motor.csr', product: 'motor', title: 'Motor claims paid', term: 'Claim settlement ratio', needs: 'insurer-wise motor-only claim data, which IRDAI does not publish' },
-  { id: 'motor.c10k', product: 'motor', title: 'Motor complaints per 10,000 policies', term: 'Grievances per 10,000 policies', needs: 'motor-only policy counts and complaints, which are reported only for the whole company' },
 ]
 
 /* ───────────────────────── Ranking ───────────────────────── */

@@ -30,7 +30,7 @@ async function check(b, label) {
   return r
 }
 
-const ROUTES = ['', 'need', 'amount', 'amount/term', 'amount/health', 'amount/motor', 'addons/term', 'addons/health', 'addons/motor', 'shortlist', 'shortlist/term', 'shortlist/health', 'shortlist/motor', 'term', 'health', 'motor', 'health/addons', 'motor/addons', 'term/insurers', 'health?age=34&spouse=1&kids=2&parents=2&embed=0', 'faq', 'faq?open=h_super', 'faq?q=room%20rent', 'faq?q=gibberish%20xyzzy', 'ask?q=zero%20dep']
+const ROUTES = ['', 'need', 'amount', 'amount/term', 'amount/health', 'addons/term', 'addons/health', 'shortlist', 'shortlist/term', 'shortlist/health', 'term', 'health', 'health/addons', 'term/insurers', 'health?age=34&spouse=1&kids=2&parents=2&embed=0', 'faq', 'faq?open=h_super', 'faq?q=room%20rent', 'faq?q=gibberish%20xyzzy', 'ask?q=zero%20dep']
 
 for (const [name, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', { width: 390, height: 844, mobile: true }]]) {
   console.log(`\n=== ${name} routes`)
@@ -42,7 +42,7 @@ for (const [name, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', {
     // reveal results where a reveal button exists
     const clicked = await b.eval(`(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^(Show my answer|Show what I need)/.test(x.textContent.trim())); if(e){e.click(); return true} return false})()`)
     if (clicked) { await b.wait(700); await check(b, `${name} #/${r} (revealed)`) }
-    if (/^(amount|term|health|motor)(\/)?$/.test(r) || /^amount\//.test(r)) { await b.clickText('Edit'); await b.wait(500); await check(b, `${name} #/${r} (adjust open)`) }
+    if (/^(amount|term|health)(\/)?$/.test(r) || /^amount\//.test(r)) { await b.clickText('Edit'); await b.wait(500); await check(b, `${name} #/${r} (adjust open)`) }
   }
   ok(`${ROUTES.length} routes checked at ${name}`)
   await b.close()
@@ -52,7 +52,7 @@ console.log('\n=== hostile input into every money field and stepper (desktop)')
 {
   const b = await launch({ width: 1280, height: 900 })
   const HOSTILE = ['0', '-5', '1e12', 'abc', '99999999999999999999', '1 crore', '₹ 5,00,000', '', '   ', '1.5.5', '🔥', '2 lpa', '0.0001', '5000000000000', '-0']
-  for (const route of ['need', 'amount/term', 'amount/health', 'amount/motor']) {
+  for (const route of ['need', 'amount/term', 'amount/health']) {
     await b.goto(base + '#/' + route, 500)
     await b.eval(`(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^(Show my answer|Show what I need)/.test(x.textContent.trim())); if(e) e.click()})()`)
     if (route.startsWith('amount/')) { await b.clickText('Edit'); await b.wait(500) }
@@ -101,11 +101,11 @@ console.log('\n=== hostile input into every money field and stepper (desktop)')
 console.log('\n=== tampered storage and junk URLs')
 {
   const b = await launch({ width: 1280, height: 900 })
-  const JUNK = ['{', 'null', '[]', '"str"', '{"age":"abc","income":-1,"dependents":"x","owns":{"a":1},"revealed":{"need":"yes"}}', '{"age":1e999}', '{"age":999,"income":1e99,"kids":-4,"vehicleValue":0,"ncb":77,"city":"mars"}', 'x'.repeat(100000), '{"revealed":{"amount.term":true,"need":true,"amount.health":true,"amount.motor":true},"dependents":["spouse","children","parents"],"owns":["homeLoan","car"],"loans":1e15}']
+  const JUNK = ['{', 'null', '[]', '"str"', '{"age":"abc","income":-1,"dependents":"x","owns":{"a":1},"revealed":{"need":"yes"}}', '{"age":1e999}', '{"age":999,"income":1e99,"kids":-4,"city":"mars"}', 'x'.repeat(100000), '{"revealed":{"amount.term":true,"need":true,"amount.health":true},"dependents":["spouse","children","parents"],"owns":["homeLoan","car"],"loans":1e15}']
   for (const j of JUNK) {
     await b.goto(base, 300)
     await b.eval(`localStorage.setItem('kyfr-insurance-agent.v1', ${JSON.stringify(j)})`)
-    for (const r of ['need', 'amount/term', 'amount/health', 'amount/motor', 'addons/term', 'shortlist/term', 'faq?q=term']) {
+    for (const r of ['need', 'amount/term', 'amount/health', 'addons/term', 'shortlist/term', 'faq?q=term']) {
       await b.goto(base + '#/' + r); await b.eval('location.reload()'); await b.wait(500)
       await check(b, `storage ${JSON.stringify(j.slice(0, 30))} #/${r}`)
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { funnelFor, healthFunnel, motorFunnel, termFunnel } from '../src/engine/funnel'
+import { funnelFor, healthFunnel, termFunnel } from '../src/engine/funnel'
 
 const names = (f: ReturnType<typeof funnelFor>) => f.survivors.map((c) => c.name).sort()
 
@@ -34,26 +34,5 @@ describe('health funnel', () => {
     expect(care.outcomes.complaints.pass).toBe(false) // 42.7 > 40
     const niva = f.table.find((c) => c.slug === 'niva-bupa')!
     expect(niva.outcomes.complaints.pass).toBe(true) // 37.1 < 40
-  })
-})
-
-describe('motor funnel is honest about what it cannot judge', () => {
-  const f = motorFunnel()
-  it('judges scale, timeliness and solvency, and says motor-only claims data is unpublished', () => {
-    expect(f.steps.map((s) => s.step.id)).toEqual(['scale', 'timely', 'solvency'])
-    expect(f.pending.join(' ')).toMatch(/not published/)
-  })
-  it('public insurers below IRDAI’s solvency minimum are eliminated, with the number shown', () => {
-    const el = f.steps[2].eliminated
-    expect(el.some((e) => /United India/.test(e.name) && /below IRDAI/.test(e.reason))).toBe(true)
-  })
-  it('the slowest payers are cut by the timeliness floor, with the number shown', () => {
-    const el = f.steps[1].eliminated.map((e) => e.name + ' ' + e.reason).join(' | ')
-    expect(el).toMatch(/IFFCO/)
-    expect(el).toMatch(/Shriram/)
-    expect(el).toMatch(/below 90%/)
-  })
-  it('keeps the big private motor insurers', () => {
-    expect(f.survivors.map((c) => c.slug)).toEqual(expect.arrayContaining(['icici-lombard', 'tata-aig', 'bajaj-allianz-general']))
   })
 })

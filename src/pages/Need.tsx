@@ -10,11 +10,9 @@ import { Arrow, Chip, Disclose, Flags, Money, Multi, Seg, Stepper } from '../ui/
 
 const DEPS = [{ id: 'spouse', label: 'Spouse or partner' }, { id: 'children', label: 'Children' }, { id: 'parents', label: 'Parents' }] as const
 const LOANS = [{ id: 'homeLoan', label: 'Home loan' }, { id: 'vehicleLoan', label: 'Car or bike loan' }, { id: 'otherLoan', label: 'Personal or other loan' }] as const
-const VEHICLES = [{ id: 'car', label: 'A car' }, { id: 'bike', label: 'A two-wheeler' }] as const
 const COVERED = [
   { id: 'ownHealth', label: 'Health plan I pay for' }, { id: 'employerHealth', label: 'Health cover from my employer' },
   { id: 'ownTerm', label: 'Term plan I pay for' }, { id: 'employerLife', label: 'Life cover from my employer' }, { id: 'savingsPlan', label: 'Endowment, money-back or ULIP' },
-  { id: 'ownMotor', label: 'Insurance on my vehicle' },
 ] as const
 
 const STATUS: Record<NeedStatus, { label: string; cls: string }> = {
@@ -24,7 +22,7 @@ const STATUS: Record<NeedStatus, { label: string; cls: string }> = {
   notYet: { label: 'Not yet', cls: 'pill--notyet' },
 }
 
-const TITLES = ['About you', 'Who relies on your income?', 'What do you earn in a year?', 'Any loans you are still paying?', 'Do you own a vehicle?', 'What insurance do you already have?']
+const TITLES = ['About you', 'Who relies on your income?', 'What do you earn in a year?', 'Any loans you are still paying?', 'What insurance do you already have?']
 
 /** One question at a time: big, clear, and the next step always in the same place. */
 export default function Need({ go }: { go: (to: string) => void }) {
@@ -52,11 +50,10 @@ export default function Need({ go }: { go: (to: string) => void }) {
       )}
       <div><Chip multi on={p.noIncome} onClick={() => set({ noIncome: !p.noIncome })}>I don’t earn an income</Chip></div>
     </div>,
-    <Multi<Owns> key="loans" label="Loans you are still paying" value={p.owns.filter((o) => o === 'homeLoan' || o === 'vehicleLoan' || o === 'otherLoan')} options={LOANS} none="No loans" onChange={(loans) => set({ owns: [...loans, ...p.owns.filter((o) => o === 'car' || o === 'bike')] })} />,
-    <Multi<Owns> key="veh" label="Vehicles you own" value={p.owns.filter((o) => o === 'car' || o === 'bike')} options={VEHICLES} none="No vehicle" onChange={(v) => set({ owns: [...p.owns.filter((o) => o !== 'car' && o !== 'bike'), ...v] })} />,
-    <Multi<Covered> key="cov" label="What covers you today" value={p.covered} options={COVERED.filter((c) => c.id !== 'ownMotor' || p.owns.includes('car') || p.owns.includes('bike'))} none="Nothing yet" onChange={(covered) => set({ covered })} />,
+    <Multi<Owns> key="loans" label="Loans you are still paying" value={p.owns.filter((o) => o === 'homeLoan' || o === 'vehicleLoan' || o === 'otherLoan')} options={LOANS} none="No loans" onChange={(loans) => set({ owns: loans })} />,
+    <Multi<Covered> key="cov" label="What covers you today" value={p.covered} options={COVERED} none="Nothing yet" onChange={(covered) => set({ covered })} />,
   ]
-  const hints = [undefined, 'Include anyone who counts on your income to get by.', undefined, 'If something happened to you, your family would be left to repay it.', 'Whether or not it is on a loan.', 'Pick everything that applies.']
+  const hints = [undefined, 'Include anyone who counts on your income to get by.', undefined, 'If something happened to you, your family would be left to repay it.', 'Pick everything that applies.']
 
   if (asking) {
     return (
@@ -95,7 +92,7 @@ export default function Need({ go }: { go: (to: string) => void }) {
         {res.flags.length > 0 && <Flags items={res.flags.slice(0, 2).map((text) => ({ level: 'warn' as const, text }))} />}
         <div className="row"><button type="button" className="btn btn--ghost btn--small" onClick={() => { setI(0); setAsking(true) }}>Change my answers</button></div>
         <Disclose title="How we decided">
-          <p className="body small">Insurance pays for rare, huge losses you could not fund yourself. When money is tight, we buy in this order: a clean health plan for each adult (waiting periods start at purchase), term life if someone depends on your income or a loan, a health super top-up if your hospitals or health history call for one, motor, then critical illness and accident cover. Employer cover is a bonus: it ends with the job.</p>
+          <p className="body small">Insurance pays for rare, huge losses you could not fund yourself. When money is tight, we buy in this order: a clean health plan for each adult (waiting periods start at purchase), term life if someone depends on your income or a loan, a health super top-up if your hospitals or health history call for one, then critical illness and accident cover. Employer cover is a bonus: it ends with the job.</p>
         </Disclose>
       </div>
       <div className="pagerbar">

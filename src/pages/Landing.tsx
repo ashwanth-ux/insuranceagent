@@ -3,7 +3,6 @@ import { Arrow } from '../ui/primitives'
 const PRODUCTS = [
   { to: 'health', t: 'Health', s: 'Hospital bills for you, your family and your parents.' },
   { to: 'term', t: 'Term life', s: 'Cover for your family if you are not around.' },
-  { to: 'motor', t: 'Car or bike', s: 'The legal minimum, and what is worth adding.' },
 ] as const
 
 export default function Landing() {
@@ -11,7 +10,7 @@ export default function Landing() {
     <div className="shell shell--wide page">
       <section className="hero">
         <div className="stack stack--lg">
-          <p className="eyebrow">Term · Health · Motor</p>
+          <p className="eyebrow">Term · Health</p>
           <h1 className="display hero__title">Know exactly what insurance you need.</h1>
           <p className="lead">Plain answers. Every number shows its working.</p>
           <div className="row" style={{ gap: 12 }}>

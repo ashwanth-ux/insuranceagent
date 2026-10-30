@@ -72,7 +72,7 @@ function Section({ s, single }: { s: ReportSection; single: boolean }) {
 
       <div className="stack">
         <h3 className="report__h">{s.cleared} of {s.universe} insurers cleared the bar</h3>
-        <p className="caption">Indicative premiums for your cover, not quotes. Listed by insurer, with the plan beneath.</p>
+        <p className="caption">Indicative premiums for your cover, not quotes. Listed by insurer, with the plan beneath.{s.product === 'health' && ' Health prices are modelled ranges, not insurer rate sheets. Comparison sites advertise “starting from” prices, which sit below a typical quote.'}</p>
         <div className="report__cards">
           {s.cards.map((c) => (
             <article className="card pcard" key={c.key}>

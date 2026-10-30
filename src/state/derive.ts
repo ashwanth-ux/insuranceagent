@@ -2,7 +2,6 @@ import { approxEmi } from '../engine/addons'
 import { LAKH, clamp, roundTo } from '../engine/format'
 import type { HealthInput } from '../engine/health'
 import { LIMITS } from '../engine/limits'
-import type { MotorInput } from '../engine/motor'
 import type { NeedsInput } from '../engine/needs'
 import { defaultGoals, type Goal, type TermInput, TERM_ASSUMPTIONS } from '../engine/term'
 import type { Profile } from './profile'
@@ -61,13 +60,6 @@ export function healthInputOf(p: Profile): HealthInput {
   }
 }
 
-export function motorInputOf(p: Profile): MotorInput {
-  return {
-    kind: p.vehicleKind, carCc: p.carCc, bikeCc: p.bikeCc, age: p.vehicleAge, value: p.vehicleValue, onLoan: p.owns.includes('vehicleLoan'), couldReplace: p.couldReplace,
-    floodProne: p.floodProne, highwayHeavy: p.highwayHeavy, streetParking: p.streetParking, ncb: p.ncb, claimSmallDents: p.claimSmallDents,
-    carriesPassengers: p.carriesPassengers, hasPA15L: p.hasPA15L, income: p.income,
-  }
-}
 
 export function needsInputOf(p: Profile): NeedsInput {
   return { age: p.age, gender: p.gender, smoker: p.smoker, dependents: p.dependents, income: p.income, owns: p.owns, covered: p.covered, noIncome: p.noIncome, hasGoals: p.goals.length > 0 }

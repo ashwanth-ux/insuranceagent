@@ -1,36 +1,33 @@
 import { describe, expect, it } from 'vitest'
 import { LAKH, CRORE, inr } from '../src/engine/format'
 import { computeHealth } from '../src/engine/health'
-import { computeMotor } from '../src/engine/motor'
 import { computeNeeds } from '../src/engine/needs'
 import { computeTerm } from '../src/engine/term'
-import { healthInputOf, motorInputOf, needsInputOf, termInputOf } from '../src/state/derive'
+import { healthInputOf, needsInputOf, termInputOf } from '../src/state/derive'
 import { sanitize, type Profile } from '../src/state/profile'
 
 const P = (o: Partial<Profile>) => sanitize(o)
 
 const personas: Record<string, Profile> = {
   'A. 24, single, ₹8L, no dependants, employer health only': P({ age: 24, income: 8 * LAKH, covered: ['employerHealth'], employerCover: 3 * LAKH, city: 'metro', hospital: 'standard' }),
-  'B. 32, spouse at home, 1 child (2), ₹24L, ₹45L home loan (Arjun)': P({ age: 32, income: 24 * LAKH, dependents: ['spouse', 'children'], spouseEarns: false, kids: 1, youngestChildAge: 2, monthlySpend: 75_000, owns: ['homeLoan', 'car'], loans: 45 * LAKH, freeSavings: 6 * LAKH, vehicleValue: 12 * LAKH, vehicleAge: '1to2' }),
+  'B. 32, spouse at home, 1 child (2), ₹24L, ₹45L home loan (Arjun)': P({ age: 32, income: 24 * LAKH, dependents: ['spouse', 'children'], spouseEarns: false, kids: 1, youngestChildAge: 2, monthlySpend: 75_000, owns: ['homeLoan'], loans: 45 * LAKH, freeSavings: 6 * LAKH }),
   'C. 32, dual income, no kids, ₹30L joint home loan': P({ age: 32, income: 18 * LAKH, dependents: ['spouse'], spouseEarns: true, monthlySpend: 60_000, owns: ['homeLoan'], loans: 30 * LAKH }),
-  'D. 38, single earner, 2 kids (6, 9), ₹40L, parents depend, ₹60L loan': P({ age: 38, income: 40 * LAKH, dependents: ['spouse', 'children', 'parents'], spouseEarns: false, kids: 2, youngestChildAge: 6, monthlySpend: 110_000, owns: ['homeLoan', 'car'], loans: 60 * LAKH, goalMarriage: true, parents: 2, parentAge: 66 }),
+  'D. 38, single earner, 2 kids (6, 9), ₹40L, parents depend, ₹60L loan': P({ age: 38, income: 40 * LAKH, dependents: ['spouse', 'children', 'parents'], spouseEarns: false, kids: 2, youngestChildAge: 6, monthlySpend: 110_000, owns: ['homeLoan'], loans: 60 * LAKH, goalMarriage: true, parents: 2, parentAge: 66 }),
   'E. 52, ₹60L, grown kids, no loans, ₹2cr savings': P({ age: 52, income: 60 * LAKH, dependents: ['spouse'], spouseEarns: true, monthlySpend: 150_000, freeSavings: 2 * CRORE, covered: ['ownHealth'], ownCover: 10 * LAKH }),
   'F. 29, self-employed, irregular ₹6L, smoker': P({ age: 29, income: 6 * LAKH, smoker: true, selfEmployed: true, dependents: ['parents'], parents: 2, parentAge: 58 }),
   'G. 34, homemaker (female), spouse earns ₹25L': P({ age: 34, gender: 'female', noIncome: true, dependents: ['children'], kids: 1, youngestChildAge: 4, monthlySpend: 80_000 }),
   'H. 41, ₹1.5cr, high earner, 2 kids, ₹1cr loan, existing ₹1cr term': P({ age: 41, income: 150 * LAKH, dependents: ['spouse', 'children'], spouseEarns: false, kids: 2, youngestChildAge: 8, monthlySpend: 250_000, owns: ['homeLoan'], loans: 100 * LAKH, covered: ['ownTerm'], existingTerm: CRORE, freeSavings: 80 * LAKH, goalMarriage: true }),
-  'I. 28, tier-2 town, ₹5L, two-wheeler, 5yr old, no loan': P({ age: 28, income: 5 * LAKH, city: 'other', hospital: 'local', owns: ['bike'], vehicleKind: 'bike', bikeCc: '75to150', vehicleAge: '5plus', vehicleValue: 35_000, couldReplace: true }),
-  'J. 45, ₹20L, luxury car 3yr old on loan, flood-prone city, NCB 50%': P({ age: 45, income: 20 * LAKH, owns: ['car'], vehicleKind: 'car', carCc: 'above1500', vehicleAge: '3to4', vehicleValue: 45 * LAKH, onLoan: true, couldReplace: false, floodProne: true, ncb: 50, claimSmallDents: true }),
+  'I. 28, tier-2 town, ₹5L, no loan': P({ age: 28, income: 5 * LAKH, city: 'other', hospital: 'local' }),
 }
 
 describe('persona outputs', () => {
-  const rows = Object.entries(personas).map(([name, p]) => ({ name, p, t: computeTerm(termInputOf(p)), h: computeHealth(healthInputOf(p)), m: computeMotor(motorInputOf(p)), n: computeNeeds(needsInputOf(p)) }))
+  const rows = Object.entries(personas).map(([name, p]) => ({ name, p, t: computeTerm(termInputOf(p)), h: computeHealth(healthInputOf(p)), n: computeNeeds(needsInputOf(p)) }))
 
   it('prints every output for review', () => {
     for (const r of rows) {
       console.log(`\n${r.name}\n  needs: ${r.n.needs.filter((x) => x.status === 'now').map((x) => x.id).join(', ') || 'none urgent'} (${r.n.stage})` +
         `\n  TERM  need ${inr(r.t.need.mid)} [${inr(r.t.need.low)}–${inr(r.t.need.high)}] buy ${inr(r.t.recommended)} (${(r.t.multipleOfIncome).toFixed(1)}× income) N=${r.t.N}y premium ₹${r.t.premium.low}–${r.t.premium.high} (${r.t.premiumPctOfIncome.toFixed(1)}% of income)${r.t.eligibility.binding ? ' CEILING-BOUND' : ''}` +
-        `\n  HEALTH total ${inr(r.h.recommendedTotal)} = base ${inr(r.h.base)} + top-up ${inr(r.h.superTopUp)}; premium ₹${r.h.premium.total.low}–${r.h.premium.total.high} (${r.h.premiumPctOfIncome.toFixed(1)}%)` +
-        `\n  MOTOR IDV ${inr(r.m.idv)} ${r.m.recommended}; TP ₹${r.m.premium.thirdPartyOnly.mid}, comp ₹${r.m.premium.comprehensive.low}–${r.m.premium.comprehensive.high}, +addons ₹${r.m.premium.withAddons.low}–${r.m.premium.withAddons.high}`)
+        `\n  HEALTH total ${inr(r.h.recommendedTotal)} = base ${inr(r.h.base)} + top-up ${inr(r.h.superTopUp)}; premium ₹${r.h.premium.total.low}–${r.h.premium.total.high} (${r.h.premiumPctOfIncome.toFixed(1)}%)`)
     }
   })
 
@@ -95,22 +92,8 @@ describe('persona outputs', () => {
     const without = computeTerm(termInputOf(P({ ...personas['H. 41, ₹1.5cr, high earner, 2 kids, ₹1cr loan, existing ₹1cr term'], covered: [], existingTerm: 0 })))
     expect(withCover.need.mid).toBeLessThan(without.need.mid - 0.9 * CRORE)
   })
-  it('I. 5yr+ bike: third-party only is reasonable, zero-dep skipped', () => {
-    const m = by('I').m
-    expect(m.recommended).toBe('thirdPartyOnly')
-    expect(m.addons.find((a) => a.id === 'zeroDep')!.verdict).toBe('skip')
-  })
   it('I. smaller town + local hospitals gets a lighter health stack', () => {
     expect(by('I').h.recommendedTotal).toBeLessThan(by('B').h.recommendedTotal)
-  })
-  it('J. luxury loan car in a flood-prone city: comprehensive, engine protect, NCB protect, RTI all taken; third-party is the large-engine rate', () => {
-    const m = by('J').m
-    expect(m.recommended).toBe('comprehensive')
-    for (const id of ['engineProtect', 'ncbProtect', 'zeroDep']) expect(m.addons.find((a) => a.id === id)!.verdict).toBe('take')
-    expect(m.tp).toBe(7897)
-  })
-  it('J. depreciation: 3–4 year old car IDV is 60% of ex-showroom', () => {
-    expect(by('J').m.idv).toBe(45 * LAKH * 0.6)
   })
   it('every persona: health total is at least its base, top-up never negative', () => {
     for (const r of rows) { expect(r.h.recommendedTotal).toBeGreaterThanOrEqual(r.h.base); expect(r.h.superTopUp).toBeGreaterThanOrEqual(0) }

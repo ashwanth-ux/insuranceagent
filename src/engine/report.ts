@@ -26,16 +26,9 @@ export interface ReportSection {
   vintage: string
 }
 
-const ORDER: Product[] = ['term', 'health', 'motor']
-
-/**
- * Which products the report covers. A single-product journey reports on that product. The full guide reports on everything it
- * suggests for the person: life and health always, motor only when they told us they have a vehicle.
- */
-export function reportProducts(scoped: boolean, product: Product, p: Profile): Product[] {
-  if (scoped) return [product]
-  const hasVehicle = p.owns.includes('car') || p.owns.includes('bike')
-  return ORDER.filter((x) => x !== 'motor' || hasVehicle || x === product)
+/** Which products the report covers. A single-product journey reports on that product. The full guide reports on both. */
+export function reportProducts(scoped: boolean, product: Product): Product[] {
+  return scoped ? [product] : ['term', 'health']
 }
 
 const NEXT: Record<Product, (s: ReportSection) => string[]> = {
@@ -48,11 +41,6 @@ const NEXT: Record<Product, (s: ReportSection) => string[]> = {
     'Ask two or three of these insurers for a quote on identical terms: same cover, same room-rent rule, same city, same family members.',
     'Check the waiting periods for existing conditions and for specific illnesses, and the cashless hospitals near you.',
     'Read the policy wording before you pay, and tell the insurer about any existing condition on the proposal form.',
-  ],
-  motor: () => [
-    'Ask two or three of these insurers for a quote on the same insured value and the same add-ons.',
-    'Enter your home PIN code on each insurer’s website and count the cashless garages within 5 km. Then your office PIN code.',
-    'Read the add-on terms before you pay, especially claim limits on zero depreciation.',
   ],
 }
 export const nextSteps = (s: ReportSection): string[] => NEXT[s.product](s)

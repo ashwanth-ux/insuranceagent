@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { LAKH, CRORE } from '../src/engine/format'
 import { assumptionsFor } from '../src/engine/assumptions'
 import { computeHealth } from '../src/engine/health'
-import { impactsFor } from '../src/engine/impacts'
-import { healthPlansView, healthStanding, motorStanding } from '../src/engine/standing'
+import { healthPlansView, healthStanding } from '../src/engine/standing'
 import { healthInputOf } from '../src/state/derive'
 import { sanitize, type Profile } from '../src/state/profile'
 
-const P = (o: Partial<Profile>) => sanitize({ age: 32, income: 24 * LAKH, dependents: ['spouse'], spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', owns: ['car'], ...o })
+const P = (o: Partial<Profile>) => sanitize({ age: 32, income: 24 * LAKH, dependents: ['spouse'], spouseEarns: false, monthlySpend: 70_000, city: 'metro', hospital: 'standard', ...o })
 
 describe('quick flow: the answer comes from step 1 alone, and says what it assumed', () => {
   const get = (xs: { key: string; value: string; suggested: boolean }[], k: string) => xs.find((x) => x.key === k)!
@@ -25,14 +24,14 @@ describe('quick flow: the answer comes from step 1 alone, and says what it assum
     expect(get(a, 'Years of support').suggested).toBe(false)
   })
   it('every product lists assumptions, none empty or NaN', () => {
-    for (const product of ['term', 'health', 'motor'] as const) {
+    for (const product of ['term', 'health'] as const) {
       const a = assumptionsFor(product, P({ dependents: ['spouse', 'children', 'parents'], kids: 2, babyPlanned: true }))
       expect(a.length).toBeGreaterThan(3)
       for (const x of a) expect(`${x.key} ${x.value}`).not.toMatch(/NaN|undefined|Infinity|\[object/)
     }
   })
   it('the summary stays short: no more than nine lines for any product', () => {
-    for (const product of ['term', 'health', 'motor'] as const) expect(assumptionsFor(product, P({ dependents: ['spouse', 'children', 'parents'], kids: 2, babyPlanned: true, covered: ['ownTerm', 'ownHealth', 'ownMotor'], existingTerm: CRORE, ownCover: 10 * LAKH })).length).toBeLessThanOrEqual(9)
+    for (const product of ['term', 'health'] as const) expect(assumptionsFor(product, P({ dependents: ['spouse', 'children', 'parents'], kids: 2, babyPlanned: true, covered: ['ownTerm', 'ownHealth'], existingTerm: CRORE, ownCover: 10 * LAKH })).length).toBeLessThanOrEqual(9)
   })
   it('touched is sanitised', () => {
     const p = sanitize({ touched: { age: true, 'bad key!': true, x: 'nope' as unknown as boolean } })
@@ -67,26 +66,6 @@ describe('health: base first, parents visible', () => {
     const r = computeHealth(healthInputOf(family))
     const sum = r.plans.reduce((s, x) => s + x.premium.mid, 0)
     expect(Math.abs(sum - r.basePlans.premium.mid)).toBeLessThan(300)
-  })
-})
-
-describe('motor: credit for the policy you already hold', () => {
-  const car = P({ vehicleKind: 'car', vehicleAge: '1to2', vehicleValue: 12 * LAKH })
-  it('comprehensive on a young car is sorted', () => {
-    const s = motorStanding({ ...car, covered: ['ownMotor'], motorPolicy: 'comprehensive' })
-    expect(s.kind).toBe('sorted')
-    expect(s.keep.join(' ')).toMatch(/insured value/)
-  })
-  it('third-party only on a young car means upgrading', () => expect(motorStanding({ ...car, covered: ['ownMotor'], motorPolicy: 'thirdParty' }).kind).toBe('partly'))
-  it('third-party only on an old replaceable bike is sorted', () => {
-    const bike = P({ owns: ['bike'], vehicleKind: 'bike', vehicleAge: '5plus', vehicleValue: 35_000, couldReplace: true, covered: ['ownMotor'], motorPolicy: 'thirdParty' })
-    expect(motorStanding(bike).kind).toBe('sorted')
-  })
-  it('no policy is fresh', () => expect(motorStanding(car).kind).toBe('fresh'))
-  it('the impact list credits it first', () => {
-    const first = impactsFor('motor', { ...car, covered: ['ownMotor'], motorPolicy: 'comprehensive' })[0]
-    expect(first.id).toBe('ownMotor')
-    expect(first.win).toBe(true)
   })
 })
 

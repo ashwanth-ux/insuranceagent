@@ -6,7 +6,7 @@ import type { Profile } from './state/profile'
  * Every value goes through the same clamping as typed input, so a bad value cannot produce a bad answer.
  * Anything passed counts as the customer's own answer, so it is not marked Suggested.
  */
-export const PREFILL_KEYS = ['age', 'gender', 'smoker', 'income', 'spouse', 'spouseEarns', 'kids', 'childAge', 'parents', 'parentAge', 'city', 'hospital', 'loans', 'vehicle', 'vehicleValue', 'vehicleAge', 'ncb', 'ownHealth', 'ownTerm', 'monthlySpend', 'savings'] as const
+export const PREFILL_KEYS = ['age', 'gender', 'smoker', 'income', 'spouse', 'spouseEarns', 'kids', 'childAge', 'parents', 'parentAge', 'city', 'hospital', 'loans', 'ownHealth', 'ownTerm', 'monthlySpend', 'savings'] as const
 
 const n = (v: string | null): number | undefined => {
   if (v === null || v.trim() === '') return undefined
@@ -50,11 +50,7 @@ export function prefillFrom(...sources: URLSearchParams[]): Partial<Profile> | n
     else if (l === 'vehicle') owns.push('vehicleLoan')
     else if (l === 'other') owns.push('otherLoan')
   }
-  const v = get('vehicle'); if (v === 'car' || v === 'bike') { owns.push(v); patch.vehicleKind = v }
-  if (has('loans') || has('vehicle')) patch.owns = owns
-  set('vehicleValue', n(get('vehicleValue')))
-  const va = get('vehicleAge'); if (va) patch.vehicleAge = va as Profile['vehicleAge']
-  const ncb = n(get('ncb')); if (ncb !== undefined) patch.ncb = ncb
+  if (has('loans')) patch.owns = owns
 
   const covered: Profile['covered'] = []
   const ownHealth = n(get('ownHealth')); if (ownHealth && ownHealth > 0) { covered.push('ownHealth'); patch.ownCover = ownHealth }

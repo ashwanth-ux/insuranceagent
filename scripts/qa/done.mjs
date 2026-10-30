@@ -1,5 +1,5 @@
 // Real-browser check of the end of the flow: insurer-first cards for every product, the Finish bar, the
-// "You're all set" page, the email link, the PDF, the nothing-to-buy ending, and the "done" signal to a host app.
+// "You're all set" page, the PDF, the nothing-to-buy ending, and the "done" signal to a host app.
 //
 //   npx vite build && node scripts/qa/done.mjs
 import { execSync } from 'node:child_process'
@@ -20,7 +20,6 @@ const FAMILY = 'age=32&gender=male&income=2400000&spouse=1&kids=1&loans=home'
 const CASES = {
   term: `#/term/insurers?${FAMILY}`,
   health: `#/health/insurers?age=34&spouse=1&kids=2&city=metro&hospital=standard&income=2400000`,
-  motor: `#/motor/insurers?vehicle=car&vehicleValue=900000&vehicleAge=2to3&ncb=35&age=30&income=1200000`,
 }
 
 for (const [product, hash] of Object.entries(CASES)) {
@@ -29,9 +28,8 @@ for (const [product, hash] of Object.entries(CASES)) {
   const cards = JSON.parse(await b.eval(`JSON.stringify([...document.querySelectorAll('.pcard')].map(c=>{const t=c.querySelector('.title'), s=c.querySelector('.plan-sub'); return {title:t.innerText, plan:s?s.innerText:null, ts:parseFloat(getComputedStyle(t).fontSize), ps:s?parseFloat(getComputedStyle(s).fontSize):null, order: s ? !!(t.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING) : true}}))`))
   check('there are insurer cards', cards.length > 0, JSON.stringify(cards))
   check('every card leads with the insurer, in the bigger text', cards.every((c) => c.ps === null || c.ts > c.ps), JSON.stringify(cards.map((c) => [c.title, c.ts, c.ps])))
-  check('the plan name sits below it in small text', cards.every((c) => c.order) && cards.filter((c) => c.plan).length > 0 || product === 'motor', JSON.stringify(cards))
+  check('the plan name sits below it in small text', cards.every((c) => c.order) && cards.filter((c) => c.plan).length > 0, JSON.stringify(cards))
   if (product === 'term') check('first card reads "Axis Max Life" over "Smart Term Plan Plus"', cards[0].title === 'Axis Max Life' && cards[0].plan === 'Smart Term Plan Plus', JSON.stringify(cards[0]))
-  check('no card shows a plan name as its headline', !cards.some((c) => /plus|supreme|smart|click|protect|care|optima/i.test(c.title) && c.plan === null && product !== 'motor' && false))
   const bar = JSON.parse(await b.eval(`JSON.stringify({exists:!!document.querySelector('.endbar'), finish:(document.querySelector('.endbar .btn--brand')||{}).innerText, inView: (()=>{const r=document.querySelector('.endbar').getBoundingClientRect(); return r.bottom <= innerHeight+1 && r.top >= 0})()})`))
   check('a Finish button is pinned on screen', bar.exists && /Finish/.test(bar.finish) && bar.inView, JSON.stringify(bar))
 }
@@ -56,7 +54,7 @@ const msgs = JSON.parse(await b.eval('JSON.stringify(window.__msgs)'))
 const sent = msgs.filter((m) => m.type === 'done')
 check('a host app is told the flow is done, once', sent.length === 1 && sent[0].product === 'term' && Array.isArray(sent[0].lines) && sent[0].lines.length > 0, JSON.stringify(msgs.map((m) => m.type)))
 const other = JSON.parse(await b.eval(`JSON.stringify([...document.querySelectorAll('.done__alt button')].map(x=>x.innerText.trim()))`))
-check('it offers the other products, not the one just finished', other.some((t) => /Health/.test(t)) && other.some((t) => /Motor/.test(t)) && !other.some((t) => /Term life/.test(t)), JSON.stringify(other))
+check('it offers the other products, not the one just finished', other.some((t) => /Health/.test(t)) && !other.some((t) => /Term life/.test(t)) && !other.some((t) => /Motor/.test(t)), JSON.stringify(other))
 
 const pdf = join(tmpdir(), 'kyfr-done.pdf')
 await b.pdf(pdf)
@@ -68,22 +66,28 @@ check('the PDF is a handful of pages', Number(pages) >= 1 && Number(pages) <= 4,
 check('the PDF never speaks bluntly', !/\b(die|died|death|dead|suicide)\b/i.test(text), '')
 console.log('      pdf pages:', pages, '→', pdf)
 
-console.log('\nthe ending from the Start flow (every product)')
-await open(`#/done/term?${FAMILY}&vehicle=car&vehicleValue=900000&vehicleAge=2to3&ncb=35&city=metro`)
+console.log('\nthe ending from the Start flow (life and health)')
+await open(`#/done/term?${FAMILY}&city=metro`)
 const full = JSON.parse(await b.eval(`JSON.stringify({report:document.querySelector('.report__title').innerText, secs:[...document.querySelectorAll('.report__sech')].map(x=>x.innerText), cards:[...document.querySelectorAll('.report__cards')].map(c=>c.children.length), other:document.querySelectorAll('.done__alt button').length, notices:document.querySelectorAll('.report__about').length})`))
-check('the report covers life, health and motor', /insurance guide report/i.test(full.report) && full.secs.length === 3 && /Term life/.test(full.secs[0]) && /Health/.test(full.secs[1]) && /Motor/.test(full.secs[2]), JSON.stringify(full))
-check('each product lists the insurers that cleared the bar', full.cards.length === 3 && full.cards.every((n) => n > 0), JSON.stringify(full.cards))
+check('the report covers life and health, and nothing else', /insurance guide report/i.test(full.report) && full.secs.length === 2 && /Term life/.test(full.secs[0]) && /Health/.test(full.secs[1]), JSON.stringify(full))
+check('each product lists the insurers that cleared the bar', full.cards.length === 2 && full.cards.every((n) => n > 0), JSON.stringify(full.cards))
 check('there is one closing notice, not one per product, and no "check something else" row', full.notices === 1 && full.other === 0, JSON.stringify(full))
 const pdf2 = join(tmpdir(), 'kyfr-done-full.pdf')
 await b.pdf(pdf2)
 const text2 = execSync(`pdftotext -layout ${pdf2} -`).toString()
-check('the full PDF has all three sections', /Term life insurance/.test(text2) && /Health insurance/.test(text2) && /Motor insurance/.test(text2), text2.slice(0, 200))
+check('the full PDF has both sections and no mention of motor', /Term life insurance/.test(text2) && /Health insurance/.test(text2) && !/motor|vehicle|car insurance/i.test(text2), text2.slice(0, 200))
 console.log('      pdf pages:', execSync(`pdfinfo ${pdf2}`).toString().match(/Pages:\s+(\d+)/)[1], '→', pdf2)
 
-console.log('\nthe Start flow without a vehicle leaves motor out')
-await open(`#/done/term?${FAMILY}`)
-const noCar = JSON.parse(await b.eval(`JSON.stringify([...document.querySelectorAll('.report__sech')].map(x=>x.innerText))`))
-check('only life and health are reported', noCar.length === 2 && !noCar.some((t) => /Motor/.test(t)), JSON.stringify(noCar))
+console.log('\nmotor is gone')
+await open('')
+const landing = JSON.parse(await b.eval(`JSON.stringify({text:document.querySelector('main').innerText, links:[...document.querySelectorAll('a')].map(a=>a.getAttribute('href'))})`))
+check('the landing page offers term and health only', !/motor|car or bike/i.test(landing.text) && !landing.links.some((h) => /motor/.test(h || '')), JSON.stringify(landing.links))
+await open('#/motor')
+const stray = await b.eval(`document.querySelector('main').innerText.slice(0, 200)`)
+check('an old #/motor link lands on the home page, not a broken page', /insurance you need/i.test(stray), stray)
+await open('#/faq')
+const faq = await b.eval(`document.querySelector('main').innerText`)
+check('the FAQ has no Motor category and no motor wording', !/motor|zero dep|no-claim bonus in motor|\bIDV\b/i.test(faq), faq.slice(0, 300))
 
 console.log('\nthe ending when there is nothing to buy')
 await open(`#/term/insurers?age=34&gender=male&income=1200000&ownTerm=100000000&spouse=1`)

@@ -4,7 +4,7 @@ import type { Product } from './state/profile'
 /**
  * Two ways through the guide.
  *  - The full guide: need → amount → add-ons → insurers, with a product switch on each step.
- *  - A single product on its own (#/motor, #/health, #/term): cover → add-ons → insurers, for one product, start to finish.
+ *  - A single product on its own (#/health, #/term): cover → add-ons → insurers, for one product, start to finish.
  * Pages ask the flow where "next" is, so they never hard-code a route.
  */
 export type Step = 'cover' | 'addons' | 'insurers' | 'done'
@@ -30,5 +30,5 @@ const Ctx = createContext<Flow>(full)
 export const FlowProvider = Ctx.Provider
 export const useFlow = () => useContext(Ctx)
 
-export const PRODUCT_NAME: Record<Product, string> = { term: 'Term life', health: 'Health', motor: 'Motor' }
-export const PRODUCT_TITLE: Record<Product, string> = { term: 'term life insurance', health: 'health insurance', motor: 'motor insurance' }
+export const PRODUCT_NAME: Record<Product, string> = { term: 'Term life', health: 'Health' }
+export const PRODUCT_TITLE: Record<Product, string> = { term: 'term life insurance', health: 'health insurance' }

@@ -229,6 +229,10 @@ export interface TermResult {
   flags: Flag[]
   steps: Step[]
   noNeed: boolean
+  /** True when something is left to cover but it is under the smallest policy we suggest, and nobody depends on it or most is held already. */
+  gapTooSmall: boolean
+  /** True when the cover was raised to the smallest policy we suggest because the calculated need is below it. */
+  raisedToMin: boolean
   /** The need before subtracting what you already hold. */
   grossNeed: number
   /** Already covered (what you hold meets the need), part of the way, or starting fresh. */
@@ -273,7 +277,11 @@ export function computeTerm(i: TermInput): TermResult {
   const baseNeed = base.total
   // The need before subtracting what is already held. The net figure is clamped at zero, so it cannot be recovered from it.
   const grossBase = termNeed({ S: householdDepends ? S : 0, N, i: A.returnBase, pi: A.inflation, L: loans, G, A: assets, E: 0, X: parentPV(A.returnBase) }).total
-  const recommendedRaw = baseNeed <= 0 ? 0 : Math.max(A.roundStep, roundUpTo(baseNeed, A.roundStep))
+  // A gap smaller than the smallest policy we suggest is not worth a policy of its own when nobody depends on the income or most of
+  // the cover is already held. Where someone does depend on it, the smallest policy is what we suggest.
+  const gapTooSmall = baseNeed > 0 && baseNeed < A.minPolicy && (existing > 0 || !depends)
+  const recommendedRaw = baseNeed <= 0 || gapTooSmall ? 0 : Math.max(A.minPolicy, roundUpTo(baseNeed, A.roundStep))
+  const raisedToMin = baseNeed > 0 && baseNeed < A.minPolicy && recommendedRaw === A.minPolicy
 
   const multiple = incomeMultipleCeiling(age)
   const ceiling = homemaker ? 100 * CRORE : multiple * income
@@ -291,9 +299,12 @@ export function computeTerm(i: TermInput): TermResult {
   if (!depends && loans === 0) flags.push({ level: 'info', text: 'Nobody depends on your income and you owe nothing, so term cover may not be needed yet. Revisit when that changes.' })
   if (depends && existing === 0) flags.push({ level: 'critical', text: 'People depend on your income and you hold no individual term cover.' })
   if (depends && recommended > 0 && existing > 0) flags.push({ level: 'gap', text: `You hold ${inr(existing)} already. About ${inr(recommended)} more closes the gap.` })
+  if (gapTooSmall) flags.push({ level: 'info', text: existing > 0 ? `You are about ${inr(roundTo(baseNeed, 1000))} short of what we calculate, which is too small for a policy of its own. Your existing cover is close enough.` : `What is left to cover works out to about ${inr(roundTo(baseNeed, 1000))}. That is below the smallest term policy we suggest (${inr(A.minPolicy)}), so savings or cover from the lender can handle it.` })
+  else if (raisedToMin) flags.push({ level: 'info', text: `The cover you need works out to about ${inr(roundTo(baseNeed, 1000))}. ${inr(A.minPolicy)} is the smallest term policy we suggest.` })
   if (i.employerLife > 0 && existing === 0) flags.push({ level: 'warn', text: 'Cover through your employer ends when the job does. We did not count it.' })
   if (binding) flags.push({ level: 'warn', text: `Insurers would likely approve about ${inr(additionalAllowed)} more at your age and income (about ${multiple}× income). Close the rest in stages, with a second insurer or your spouse’s cover.` })
-  if (!homemaker && (kidsPresent(i) || i.spouse === 'homemaker' || i.dependentParents) && loans > 0 && baseNeed > 0 && (totalCover / income) < 8) flags.push({ level: 'warn', text: 'Under 8× income with dependents and loans is low. Recheck the inputs.' })
+  // Only for a household that needs a long run of income replaced. Parents alone are sized on what is sent to them, not on a multiple of income.
+  if (!homemaker && (kidsPresent(i) || i.spouse === 'homemaker') && loans > 0 && baseNeed > 0 && (totalCover / income) < 8) flags.push({ level: 'warn', text: 'Under 8× income with dependents and loans is low. Check the household spending and goals you entered.' })
   if (homemaker && baseNeed > 0) flags.push({ level: 'info', text: 'Sized on the cost of replacing your work, not on income. Insurers usually cap cover for a homemaker at a share of the earning spouse’s cover, so ask before you apply.' })
   if (premiumPct > 2) flags.push({ level: 'info', text: `This would cost about ${pct(premiumPct, 1)} of income a year. Under 2% is comfortable. Cover to a lower age or a staged top-up can bring it down.` })
   if (age > 65) flags.push({ level: 'warn', text: 'Most insurers do not sell new term cover after 65. Health cover matters more now.' })
@@ -331,9 +342,11 @@ export function computeTerm(i: TermInput): TermResult {
     hlv, coverToAge, premium, premiumPctOfIncome: premiumPct,
     sensitivity: { returns, years, grid },
     flags, steps,
-    noNeed: baseNeed <= 0,
+    noNeed: baseNeed <= 0 || gapTooSmall,
+    gapTooSmall,
+    raisedToMin,
     grossNeed: Math.max(0, grossBase),
-    standing: existing > 0 && baseNeed <= 0 ? 'sorted' : existing > 0 && recommended > 0 ? 'partly' : 'fresh',
+    standing: existing > 0 && (baseNeed <= 0 || gapTooSmall) ? 'sorted' : existing > 0 && recommended > 0 ? 'partly' : 'fresh',
     surplus: existing > 0 && baseNeed <= 0 ? Math.max(0, existing - grossBase) : 0,
   }
 }

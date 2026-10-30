@@ -1,13 +1,12 @@
-import { HEALTH_PLANS, MOTOR_INSURER_TERMS, TERM_PLANS } from '../data/plans'
+import { HEALTH_PLANS, TERM_PLANS } from '../data/plans'
 import { inr } from './format'
 import type { Funnel } from './funnel'
 import { factsFor } from './insurerFacts'
 import { insurerBySlug } from './kb'
-import { computeMotor } from './motor'
 import { addonItems, outcomeFor, rangeText, type Outcome } from './selection'
 import { computeTerm } from './term'
 import { planPremium } from './termplans'
-import { motorInputOf, termInputOf } from '../state/derive'
+import { termInputOf } from '../state/derive'
 import type { Product, Profile } from '../state/profile'
 
 /** One insurer's card, as the insurers page and the saved report both show it. */
@@ -45,18 +44,6 @@ export function buildCards(tab: Product, p: Profile, f: Funnel): { cards: Card[]
       if (on.has('maternity')) lines.push({ ok: null, text: 'Check maternity limit and wait on the quote' })
       lines.push({ ok: null, text: `${pl.networkHospitals ? `${pl.networkHospitals.toLocaleString('en-IN')}+ network hospitals` : 'Network not stated'} · ${pl.pedWaitYears}-year wait for existing conditions` })
       cards.push({ key: pl.id, slug: pl.insurer, title: insurerBySlug('health', pl.insurer)?.name ?? pl.insurer, plan: pl.name, cover: out.lines.map((l) => `${l.label} ${l.value}`).join(' · '), premium: `${rangeText(out.base)} a year`, withAddons: withAdd, lines: lines.slice(0, 4), note: pl.variantNote })
-    }
-  } else {
-    const m = computeMotor(motorInputOf(p))
-    for (const c of f.survivors) {
-      const t = MOTOR_INSURER_TERMS.find((x) => x.insurer === c.slug)
-      const g = t?.garages ? Object.values(t.garages).filter((x): x is number => typeof x === 'number') : []
-      const lines: Line[] = []
-      if (g.length) lines.push({ ok: null, text: `${Math.max(...g).toLocaleString('en-IN')}+ cashless garages` })
-      if (on.has('zeroDep') && t?.zeroDepMaxVehicleYears) lines.push({ ok: true, text: `Zero depreciation to ${t.zeroDepMaxVehicleYears} years, ${t.zeroDepClaimsPerYear === 'unlimited' ? 'unlimited claims' : `${t.zeroDepClaimsPerYear} claims a year`}` })
-      if (on.has('rsa') && t?.roadsideAssist) lines.push({ ok: null, text: `Roadside help: ${t.roadsideAssist}` })
-      if (t?.claimSpeed) lines.push({ ok: null, text: t.claimSpeed })
-      cards.push({ key: c.slug, slug: c.slug, title: c.name, cover: `Insured value ${inr(m.idv)}`, premium: `${rangeText(out.total)} a year`, lines: lines.slice(0, 4) })
     }
   }
 

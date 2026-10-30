@@ -1,10 +1,10 @@
 /**
  * Messages out to the host app, so it can follow the flow without reading our screens.
  * Delivered to a React Native WebView, an iOS WKWebView handler named `kyfr`, or a parent window (to the origin that embedded us).
- * Nothing personal is sent: only the product, the step, and the cover and premium shown.
+ * Nothing personal is sent: only the product, the step, the cover and premium shown, and, when the person leaves it, their rating and the few words they chose to write.
  */
 export interface BridgeMessage {
-  type: 'step' | 'outcome' | 'done'
+  type: 'step' | 'outcome' | 'done' | 'feedback'
   [key: string]: unknown
 }
 
